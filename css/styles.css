@@ -521,34 +521,16 @@ ol {
   overflow: hidden;
 }
 
-.deck-card::before {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 4px;
-  background: linear-gradient(
-    135deg,
-    var(--color-primary-dark) 0%,
-    var(--color-primary) 50%,
-    var(--color-primary-dark) 100%
-  );
-  border: 1px solid var(--color-accent);
-}
-
-/* Karate logo on deck cards */
+/* Karate card back design */
 .deck-card::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60%;
-  height: 60%;
-  transform: translate(-50%, -50%);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4af37'%3E%3C!-- Karate figure silhouette --%3E%3Cpath d='M50 10 L55 15 L55 25 L60 30 L75 25 L80 30 L65 40 L60 38 L58 50 L70 65 L68 70 L55 58 L52 75 L55 95 L50 95 L48 75 L45 58 L32 70 L30 65 L42 50 L40 38 L35 40 L20 30 L25 25 L40 30 L45 25 L45 15 Z'/%3E%3C!-- Belt --%3E%3Crect x='40' y='48' width='20' height='4' rx='1'/%3E%3C/g%3E%3C!-- Circle border --%3E%3Ccircle cx='50' cy='50' r='45' stroke='%23d4af37' stroke-width='3' fill='none'/%3E%3C/svg%3E");
-  background-size: contain;
+  inset: 3px;
+  border-radius: 4px;
+  background-image: url("../assets/card-back.svg");
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
-  opacity: 0.9;
 }
 
 .deck-card-1 {
@@ -1083,34 +1065,16 @@ ol {
   overflow: hidden;
 }
 
-.card.face-down::before {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 4px;
-  background: linear-gradient(
-    135deg,
-    var(--color-primary-dark) 0%,
-    var(--color-primary) 50%,
-    var(--color-primary-dark) 100%
-  );
-  border: 1px solid var(--color-accent);
-}
-
-/* Karate logo on face-down cards */
+/* Karate card back design */
 .card.face-down::after {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 60%;
-  height: 60%;
-  transform: translate(-50%, -50%);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4af37'%3E%3Cpath d='M50 10 L55 15 L55 25 L60 30 L75 25 L80 30 L65 40 L60 38 L58 50 L70 65 L68 70 L55 58 L52 75 L55 95 L50 95 L48 75 L45 58 L32 70 L30 65 L42 50 L40 38 L35 40 L20 30 L25 25 L40 30 L45 25 L45 15 Z'/%3E%3Crect x='40' y='48' width='20' height='4' rx='1'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='45' stroke='%23d4af37' stroke-width='3' fill='none'/%3E%3C/svg%3E");
-  background-size: contain;
+  inset: 3px;
+  border-radius: 4px;
+  background-image: url("../assets/card-back.svg");
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
-  opacity: 0.9;
   z-index: 1;
 }
 

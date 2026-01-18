@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140">
+  <defs>
+    <!-- Background pattern - traditional Japanese seigaiha (wave) pattern -->
+    <pattern id="seigaiha" x="0" y="0" width="20" height="10" patternUnits="userSpaceOnUse">
+      <path d="M0 10 Q5 5 10 10 Q15 5 20 10" stroke="#2a1a3a" stroke-width="0.5" fill="none" opacity="0.5"/>
+      <path d="M-10 5 Q-5 0 0 5 Q5 0 10 5 Q15 0 20 5 Q25 0 30 5" stroke="#2a1a3a" stroke-width="0.5" fill="none" opacity="0.5"/>
+    </pattern>
+
+    <!-- Gold gradient for accents -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4d03f"/>
+      <stop offset="50%" style="stop-color:#d4af37"/>
+      <stop offset="100%" style="stop-color:#b8860b"/>
+    </linearGradient>
+
+    <!-- Radial glow -->
+    <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#3a2a4a;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Card background -->
+  <rect width="100" height="140" fill="url(#centerGlow)" rx="6"/>
+
+  <!-- Wave pattern overlay -->
+  <rect width="100" height="140" fill="url(#seigaiha)" rx="6"/>
+
+  <!-- Outer border -->
+  <rect x="4" y="4" width="92" height="132" rx="4" fill="none" stroke="url(#goldGrad)" stroke-width="2"/>
+
+  <!-- Inner decorative border -->
+  <rect x="8" y="8" width="84" height="124" rx="3" fill="none" stroke="url(#goldGrad)" stroke-width="0.5" opacity="0.6"/>
+
+  <!-- Corner decorations - stylized martial arts stars -->
+  <g fill="url(#goldGrad)" opacity="0.8">
+    <!-- Top left -->
+    <polygon points="16,16 18,20 22,20 19,23 20,27 16,24 12,27 13,23 10,20 14,20"/>
+    <!-- Top right -->
+    <polygon points="84,16 86,20 90,20 87,23 88,27 84,24 80,27 81,23 78,20 82,20"/>
+    <!-- Bottom left -->
+    <polygon points="16,124 18,128 22,128 19,131 20,135 16,132 12,135 13,131 10,128 14,128"/>
+    <!-- Bottom right -->
+    <polygon points="84,124 86,128 90,128 87,131 88,135 84,132 80,135 81,131 78,128 82,128"/>
+  </g>
+
+  <!-- Main karate figure - dynamic high kick pose -->
+  <g transform="translate(50, 70)">
+    <!-- Figure silhouette -->
+    <g fill="url(#goldGrad)">
+      <!-- Head -->
+      <circle cx="0" cy="-32" r="7"/>
+
+      <!-- Headband tails flowing -->
+      <path d="M5,-35 Q15,-38 18,-30 Q16,-33 8,-32" opacity="0.9"/>
+      <path d="M6,-33 Q14,-35 16,-28" fill="none" stroke="url(#goldGrad)" stroke-width="1.5"/>
+
+      <!-- Body/torso - gi top -->
+      <path d="M-8,-25 L-12,-10 L-6,5 L6,5 L12,-10 L8,-25 Z"/>
+
+      <!-- Gi lapel detail -->
+      <path d="M0,-25 L-4,-10 L0,0 L4,-10 Z" fill="#1a1a2e" opacity="0.4"/>
+
+      <!-- Belt -->
+      <rect x="-10" y="2" width="20" height="5" rx="1"/>
+      <path d="M10,4 Q15,8 12,15" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-linecap="round"/>
+      <path d="M10,4 Q18,6 16,12" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-linecap="round"/>
+
+      <!-- Supporting leg -->
+      <path d="M-2,7 L-8,25 L-12,45 L-8,47 L-4,45 L2,25 Z"/>
+
+      <!-- Kicking leg - extended high kick -->
+      <path d="M2,7 L8,12 L28,-8 L32,-6 L30,-3 L10,15 L4,10 Z"/>
+
+      <!-- Back arm - pulled back -->
+      <path d="M-8,-20 L-20,-15 L-25,-18 L-22,-22 L-18,-20 L-10,-22 Z"/>
+
+      <!-- Front arm - extended strike -->
+      <path d="M8,-20 L18,-25 L28,-24 L29,-20 L20,-20 L10,-18 Z"/>
+    </g>
+
+    <!-- Action lines -->
+    <g stroke="url(#goldGrad)" stroke-width="1" opacity="0.5" fill="none">
+      <path d="M30,-10 L38,-12"/>
+      <path d="M32,-5 L40,-5"/>
+      <path d="M30,0 L38,2"/>
+      <path d="M26,-28 L32,-30"/>
+      <path d="M28,-24 L34,-24"/>
+    </g>
+  </g>
+
+  <!-- Japanese characters - "Karate" (empty hand) -->
+  <g fill="url(#goldGrad)" font-family="serif" text-anchor="middle">
+    <!-- Top character area -->
+    <text x="50" y="28" font-size="12" opacity="0.9">空</text>
+
+    <!-- Bottom character area -->
+    <text x="50" y="130" font-size="12" opacity="0.9">手</text>
+  </g>
+
+  <!-- Decorative circles -->
+  <circle cx="50" cy="70" r="38" fill="none" stroke="url(#goldGrad)" stroke-width="1" opacity="0.3"/>
+  <circle cx="50" cy="70" r="42" fill="none" stroke="url(#goldGrad)" stroke-width="0.5" opacity="0.2" stroke-dasharray="4,4"/>
+</svg>
