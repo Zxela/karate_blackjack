@@ -2,9 +2,21 @@
 
 A karate-themed browser-based blackjack game with retro arcade aesthetics, synthesized sound effects, and smooth animations.
 
-![Karate Blackjack](https://img.shields.io/badge/Game-Blackjack-c41e3a)
-![License](https://img.shields.io/badge/License-MIT-green)
-![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow)
+[![Play Now](https://img.shields.io/badge/Play%20Now-Live%20Demo-c41e3a?style=for-the-badge)](https://karate-blackjack.netlify.app)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+[![JavaScript](https://img.shields.io/badge/JavaScript-ES6+-yellow?style=flat-square)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
+
+<p align="center">
+  <a href="https://karate-blackjack.netlify.app">
+    <img src="assets/screenshot.png" alt="Karate Blackjack Screenshot" width="700">
+  </a>
+</p>
+
+<p align="center">
+  <strong><a href="https://karate-blackjack.netlify.app">Play Karate Blackjack</a></strong>
+</p>
+
+---
 
 ## Features
 
