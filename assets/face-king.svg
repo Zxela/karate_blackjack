@@ -50,7 +50,4 @@
     <circle cx="18" cy="2" r="4" fill="#e8d5c4"/>
   </g>
 
-  <!-- K letters in corners -->
-  <text x="5" y="15" font-family="serif" font-size="14" font-weight="bold" fill="currentColor">K</text>
-  <text x="65" y="95" font-family="serif" font-size="14" font-weight="bold" fill="currentColor" transform="rotate(180, 65, 90)">K</text>
 </svg>
