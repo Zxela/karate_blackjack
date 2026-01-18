@@ -219,6 +219,7 @@ function updatePhaseUI(state) {
       break
 
     case GAME_PHASES.RESOLUTION:
+    case GAME_PHASES.GAME_OVER:
       elements.newRoundControls().classList.remove('hidden')
       displayResults(state)
       break
