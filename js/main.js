@@ -36,6 +36,9 @@ let handCount = 1
 /** @type {number} */
 let activeHandIndex = 0
 
+/** @type {boolean} */
+let isDealingAnimation = false
+
 // =============================================================================
 // DOM REFERENCES
 // =============================================================================
@@ -92,6 +95,11 @@ const elements = {
 function createCardElement(card, faceDown = false) {
   const cardEl = document.createElement('div')
   cardEl.className = `card ${faceDown ? 'face-down' : ''}`
+
+  // Hide cards during dealing animation - AnimationCoordinator will reveal them
+  if (isDealingAnimation) {
+    cardEl.style.visibility = 'hidden'
+  }
 
   if (faceDown) {
     cardEl.innerHTML = '<span class="card-back">🂠</span>'
@@ -403,12 +411,14 @@ async function deal() {
 
   // Animate the initial deal
   if (animationCoordinator) {
+    isDealingAnimation = true
     await animationCoordinator.animateInitialDeal(
       newState.playerHands,
       newState.dealerHand,
       handCount,
       updateUI
     )
+    isDealingAnimation = false
   }
 
   activeHandIndex = 0

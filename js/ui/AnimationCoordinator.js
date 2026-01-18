@@ -18,12 +18,24 @@
  * @type {Object}
  */
 const TIMING = {
-  CARD_DEAL: 250,
-  CARD_STAGGER: 150,
-  CHIP_MOVE: 200,
+  CARD_DEAL: 300,
+  CARD_STAGGER: 120,
+  CHIP_MOVE: 250,
   RESULT_SHOW: 400,
   DEALER_PAUSE: 600,
   BETWEEN_HANDS: 300
+}
+
+/**
+ * Animation curves and physics constants.
+ * @type {Object}
+ */
+const ANIMATION = {
+  CARD_ARC_HEIGHT: 40,
+  CARD_ROTATION: 15,
+  CARD_SCALE_FLIGHT: 1.08,
+  BOUNCE_OVERSHOOT: 0.12,
+  CHIP_BOUNCE: 8
 }
 
 /**
@@ -586,16 +598,40 @@ export class AnimationCoordinator {
         const elapsed = currentTime - startTime
         const progress = Math.min(elapsed / TIMING.CARD_DEAL, 1)
 
-        // Ease-out easing
-        const easeProgress = 1 - (1 - progress) ** 3
+        // Ease-out with slight bounce at end
+        let easeProgress
+        if (progress < 0.7) {
+          // Main movement phase - ease out
+          easeProgress = 1 - (1 - progress / 0.7) ** 3
+          easeProgress *= 1 + ANIMATION.BOUNCE_OVERSHOOT
+        } else {
+          // Settle phase - ease back from overshoot
+          const settleProgress = (progress - 0.7) / 0.3
+          const overshootAmount = ANIMATION.BOUNCE_OVERSHOOT * (1 - settleProgress ** 2)
+          easeProgress = 1 + overshootAmount
+        }
+        easeProgress = Math.min(easeProgress, 1 + ANIMATION.BOUNCE_OVERSHOOT)
 
-        const currentX = startX + (endX - startX) * easeProgress
-        const currentY = startY + (endY - startY) * easeProgress
+        // Calculate position with parabolic arc
+        const linearProgress = Math.min(progress / 0.7, 1)
+        const currentX = startX + (endX - startX) * Math.min(easeProgress, 1)
+
+        // Arc: highest at midpoint, using parabola
+        const arcHeight = ANIMATION.CARD_ARC_HEIGHT * Math.sin(linearProgress * Math.PI)
+        const baseY = startY + (endY - startY) * Math.min(easeProgress, 1)
+        const currentY = baseY - arcHeight
+
+        // Rotation: starts tilted, levels out
+        const rotation = ANIMATION.CARD_ROTATION * (1 - linearProgress) * (Math.PI / 180)
+
+        // Scale: slightly larger during flight
+        const scaleAmount =
+          1 + (ANIMATION.CARD_SCALE_FLIGHT - 1) * Math.sin(linearProgress * Math.PI)
 
         // Clear and redraw table chips + animating card
         this._clearCanvas()
         this._drawAllTableChips()
-        this._drawCard(card, currentX, currentY, faceUp)
+        this._drawCardAnimated(card, currentX, currentY, faceUp, rotation, scaleAmount)
 
         if (progress < 1) {
           requestAnimationFrame(animate)
@@ -904,6 +940,117 @@ export class AnimationCoordinator {
       ctx.stroke()
 
       // Draw karate figure logo
+      this._drawKarateLogo(x + width / 2, y + height / 2, Math.min(width, height) * 0.35)
+    }
+  }
+
+  /**
+   * Draws a card with animation transforms (rotation, scale, enhanced shadow).
+   *
+   * @param {Object} card - Card object with suit and rank
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {boolean} faceUp - Whether to show face
+   * @param {number} rotation - Rotation in radians
+   * @param {number} scale - Scale factor (1.0 = normal)
+   * @private
+   */
+  _drawCardAnimated(card, x, y, faceUp, rotation, scale) {
+    const ctx = this._ctx
+    const width = CARD_DIMS.WIDTH
+    const height = CARD_DIMS.HEIGHT
+
+    ctx.save()
+
+    // Enhanced shadow for flying card (larger, offset based on height)
+    const shadowOffset = 4 + (scale - 1) * 30
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)'
+    ctx.shadowBlur = 8 + (scale - 1) * 20
+    ctx.shadowOffsetX = shadowOffset
+    ctx.shadowOffsetY = shadowOffset
+
+    // Apply transforms around card center
+    ctx.translate(x + width / 2, y + height / 2)
+    ctx.rotate(rotation)
+    ctx.scale(scale, scale)
+    ctx.translate(-width / 2, -height / 2)
+
+    // Draw the card at origin (transforms applied)
+    this._drawCardContent(card, 0, 0, faceUp)
+
+    ctx.restore()
+  }
+
+  /**
+   * Draws card content without transforms (used by both _drawCard and _drawCardAnimated).
+   *
+   * @param {Object} card - Card object
+   * @param {number} x - X position
+   * @param {number} y - Y position
+   * @param {boolean} faceUp - Whether to show face
+   * @private
+   */
+  _drawCardContent(card, x, y, faceUp) {
+    const ctx = this._ctx
+    const width = CARD_DIMS.WIDTH
+    const height = CARD_DIMS.HEIGHT
+    const radius = 6
+
+    // Card background
+    ctx.fillStyle = faceUp ? '#f8f8f8' : '#1a1a2e'
+    ctx.beginPath()
+    ctx.roundRect(x, y, width, height, radius)
+    ctx.fill()
+
+    // Card border
+    ctx.strokeStyle = faceUp ? '#333' : '#d4af37'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.roundRect(x, y, width, height, radius)
+    ctx.stroke()
+
+    if (faceUp && card) {
+      const suitSymbols = {
+        hearts: '\u2665',
+        diamonds: '\u2666',
+        clubs: '\u2663',
+        spades: '\u2660'
+      }
+      const suitColors = {
+        hearts: '#c41e3a',
+        diamonds: '#c41e3a',
+        clubs: '#1a1a2e',
+        spades: '#1a1a2e'
+      }
+
+      const symbol = suitSymbols[card.suit] || '\u2665'
+      const color = suitColors[card.suit] || '#1a1a2e'
+
+      ctx.fillStyle = color
+      ctx.font = 'bold 16px Georgia, serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(card.rank, x + width / 2, y + 22)
+
+      ctx.font = '24px Georgia, serif'
+      ctx.fillText(symbol, x + width / 2, y + height / 2 + 8)
+    } else if (!faceUp) {
+      // Card back design with karate logo
+      const gradient = ctx.createLinearGradient(x, y, x + width, y + height)
+      gradient.addColorStop(0, '#8b1428')
+      gradient.addColorStop(0.5, '#c41e3a')
+      gradient.addColorStop(1, '#8b1428')
+
+      ctx.fillStyle = gradient
+      ctx.beginPath()
+      ctx.roundRect(x + 4, y + 4, width - 8, height - 8, 4)
+      ctx.fill()
+
+      ctx.strokeStyle = '#d4af37'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.roundRect(x + 4, y + 4, width - 8, height - 8, 4)
+      ctx.stroke()
+
       this._drawKarateLogo(x + width / 2, y + height / 2, Math.min(width, height) * 0.35)
     }
   }
