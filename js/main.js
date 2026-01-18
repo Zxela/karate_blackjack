@@ -209,7 +209,7 @@ function updatePhaseUI(state) {
       updateActionButtons()
       break
 
-    case GAME_PHASES.INSURANCE_OFFERED:
+    case GAME_PHASES.INSURANCE_CHECK:
       elements.insuranceControls().classList.remove('hidden')
       messageEl.textContent = 'Dealer shows Ace - Insurance?'
       break
