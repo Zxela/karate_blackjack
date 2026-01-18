@@ -366,6 +366,19 @@ function findActiveHand() {
 }
 
 /**
+ * Completes the round if in dealer turn phase.
+ * Plays dealer turn and resolves the round.
+ */
+function completeRoundIfNeeded() {
+  const state = game.getState()
+
+  if (state.phase === GAME_PHASES.DEALER_TURN) {
+    game.playDealerTurn()
+    game.resolveRound()
+  }
+}
+
+/**
  * Player hits on the active hand.
  */
 function hit() {
@@ -377,10 +390,11 @@ function hit() {
   // If hand busted or standing, move to next hand
   if (hand && (hand.isBust || hand.isStanding)) {
     activeHandIndex++
-    if (!findActiveHand()) {
-      // All hands done, dealer's turn happens automatically via state machine
-    }
+    findActiveHand()
   }
+
+  // Check if dealer turn should happen
+  completeRoundIfNeeded()
 
   updateUI()
 }
@@ -392,9 +406,10 @@ function stand() {
   game.stand(activeHandIndex)
 
   activeHandIndex++
-  if (!findActiveHand()) {
-    // All hands done
-  }
+  findActiveHand()
+
+  // Check if dealer turn should happen
+  completeRoundIfNeeded()
 
   updateUI()
 }
@@ -406,9 +421,10 @@ function doubleDown() {
   game.doubleDown(activeHandIndex)
 
   activeHandIndex++
-  if (!findActiveHand()) {
-    // All hands done
-  }
+  findActiveHand()
+
+  // Check if dealer turn should happen
+  completeRoundIfNeeded()
 
   updateUI()
 }
