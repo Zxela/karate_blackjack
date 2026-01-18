@@ -1583,20 +1583,30 @@ describe('GameEngine', () => {
       if (engine.getState().insuranceOffered) {
         engine.declineInsurance()
       }
-      expect(engine.getState().phase).toBe(GAME_PHASES.PLAYER_TURN)
 
-      // 4. Hit (optional)
-      const handValue = engine.getState().playerHands[0].value
-      if (handValue < 17 && !engine.getState().playerHands[0].isBust) {
-        engine.hit(0)
-        expect(engine.getState().playerHands[0].cards.length).toBe(3)
-      }
+      // 3c. If player got blackjack, skip to dealer turn/resolution
+      const playerHasBlackjack = engine.getState().playerHands[0].isBlackjack
+      if (!playerHasBlackjack) {
+        expect(engine.getState().phase).toBe(GAME_PHASES.PLAYER_TURN)
 
-      // 5. Stand
-      if (!engine.getState().playerHands[0].isStanding) {
-        engine.stand(0)
+        // 4. Hit (optional)
+        const handValue = engine.getState().playerHands[0].value
+        if (handValue < 17 && !engine.getState().playerHands[0].isBust) {
+          engine.hit(0)
+          expect(engine.getState().playerHands[0].cards.length).toBe(3)
+        }
+
+        // 5. Stand
+        if (!engine.getState().playerHands[0].isStanding) {
+          engine.stand(0)
+        }
+        expect(engine.getState().phase).toBe(GAME_PHASES.DEALER_TURN)
+      } else {
+        // Player has blackjack - game may be in dealer turn or resolution already
+        expect([GAME_PHASES.DEALER_TURN, GAME_PHASES.RESOLUTION, GAME_PHASES.GAME_OVER]).toContain(
+          engine.getState().phase
+        )
       }
-      expect(engine.getState().phase).toBe(GAME_PHASES.DEALER_TURN)
 
       // 6. Dealer plays
       engine.playDealerTurn()
