@@ -150,7 +150,10 @@ function updateUI() {
 
   // Update dealer
   const dealerCards = state.dealerHand.cards
-  const hideDealerCard = state.phase === GAME_PHASES.PLAYER_TURN && dealerCards.length > 0
+  // Hide dealer's hole card during player turn AND insurance check
+  const hideDealerCard =
+    (state.phase === GAME_PHASES.PLAYER_TURN || state.phase === GAME_PHASES.INSURANCE_CHECK) &&
+    dealerCards.length > 0
   renderCards(elements.dealerHand(), dealerCards, hideDealerCard)
 
   if (hideDealerCard && dealerCards.length > 0) {
