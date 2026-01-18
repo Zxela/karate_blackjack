@@ -1265,11 +1265,20 @@ ol {
   font-family: "Georgia", serif;
   position: relative;
   margin-left: calc(var(--card-overlap) * -0.5);
+  /* Ensure proper stacking - later cards stack behind earlier ones */
+  z-index: var(--z-cards);
 }
 
 .card:first-child {
   margin-left: 0;
+  z-index: calc(var(--z-cards) + 5);
 }
+
+/* Each subsequent card stacks behind */
+.card:nth-child(2) { z-index: calc(var(--z-cards) + 4); }
+.card:nth-child(3) { z-index: calc(var(--z-cards) + 3); }
+.card:nth-child(4) { z-index: calc(var(--z-cards) + 2); }
+.card:nth-child(5) { z-index: calc(var(--z-cards) + 1); }
 
 .card-rank {
   font-size: clamp(1.2rem, 4vw, 1.8rem);
@@ -1359,7 +1368,8 @@ ol {
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
-  z-index: 1;
+  /* z-index relative to card's stacking context */
+  z-index: 0;
 }
 
 .card-back {
