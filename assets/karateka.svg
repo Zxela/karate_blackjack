@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100">
+  <defs>
+    <linearGradient id="karatekaGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4d03f"/>
+      <stop offset="100%" style="stop-color:#d4af37"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Karateka figure - ready fighting stance -->
+  <g>
+    <!-- Head -->
+    <circle cx="40" cy="18" r="11" fill="#e8d5c4"/>
+
+    <!-- Hair -->
+    <path d="M29,15 Q30,5 40,6 Q50,5 51,15 L49,12 Q40,10 31,12 Z" fill="#2a1a0a"/>
+
+    <!-- Headband -->
+    <rect x="28" y="12" width="24" height="4" rx="1" fill="#c41e3a"/>
+    <!-- Headband knot -->
+    <circle cx="52" cy="14" r="3" fill="#c41e3a"/>
+    <!-- Headband tails -->
+    <path d="M54,14 Q60,12 62,18" stroke="#c41e3a" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M54,15 Q58,16 60,22" stroke="#c41e3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+    <!-- Face -->
+    <!-- Eyes (determined) -->
+    <ellipse cx="35" cy="18" rx="2" ry="1.5" fill="#333"/>
+    <ellipse cx="45" cy="18" rx="2" ry="1.5" fill="#333"/>
+    <!-- Eye shine -->
+    <circle cx="34" cy="17" r="0.5" fill="#fff"/>
+    <circle cx="44" cy="17" r="0.5" fill="#fff"/>
+    <!-- Eyebrows -->
+    <path d="M32,15 L38,14" stroke="#2a1a0a" stroke-width="1.5" fill="none"/>
+    <path d="M42,14 L48,15" stroke="#2a1a0a" stroke-width="1.5" fill="none"/>
+    <!-- Nose -->
+    <path d="M40,19 L40,22" stroke="#d4c4b4" stroke-width="1" fill="none"/>
+    <!-- Mouth (slight smile) -->
+    <path d="M37,24 Q40,26 43,24" stroke="#b08070" stroke-width="1" fill="none"/>
+  </g>
+
+  <!-- Gi (uniform) -->
+  <g fill="#f5f5f5">
+    <!-- Torso -->
+    <path d="M28,28 L22,70 L35,75 L40,73 L45,75 L58,70 L52,28 Z"/>
+
+    <!-- Gi lapel opening -->
+    <path d="M35,28 L40,50 L45,28" fill="#e8e8e8"/>
+    <path d="M35,28 L33,42 L40,50" fill="none" stroke="#ddd" stroke-width="1"/>
+    <path d="M45,28 L47,42 L40,50" fill="none" stroke="#ddd" stroke-width="1"/>
+  </g>
+
+  <!-- Belt (color will be set by CSS class) -->
+  <g class="belt-group">
+    <rect x="24" y="48" width="32" height="5" rx="1" fill="currentColor" class="belt"/>
+    <!-- Belt knot -->
+    <rect x="36" y="48" width="8" height="5" rx="1" fill="currentColor" class="belt" opacity="0.8"/>
+    <!-- Belt tails -->
+    <path d="M44,51 Q50,55 48,62" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" class="belt"/>
+    <path d="M44,52 Q52,54 52,60" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" class="belt"/>
+  </g>
+
+  <!-- Arms in guard position -->
+  <g fill="#f5f5f5">
+    <!-- Left arm (forward guard) -->
+    <path d="M22,32 L12,45 L15,48 L28,42 Z"/>
+    <!-- Right arm (pulled back) -->
+    <path d="M58,32 L65,42 L62,48 L52,40 Z"/>
+  </g>
+
+  <!-- Hands/fists -->
+  <g fill="#e8d5c4">
+    <!-- Left fist (forward) -->
+    <ellipse cx="13" cy="46" rx="5" ry="4"/>
+    <!-- Right fist (back) -->
+    <ellipse cx="64" cy="44" rx="4" ry="4"/>
+  </g>
+
+  <!-- Legs in stance -->
+  <g fill="#f5f5f5">
+    <!-- Left leg (forward) -->
+    <path d="M26,70 L20,95 L30,95 L34,73"/>
+    <!-- Right leg (back) -->
+    <path d="M54,70 L60,95 L50,95 L46,73"/>
+  </g>
+
+  <!-- Feet -->
+  <g fill="#1a1a1a">
+    <ellipse cx="25" cy="96" rx="6" ry="3"/>
+    <ellipse cx="55" cy="96" rx="6" ry="3"/>
+  </g>
+</svg>

@@ -45,14 +45,21 @@ let isDealingAnimation = false
 // =============================================================================
 
 const elements = {
-  // Balance
+  // Balance & Rank
   balanceAmount: () => document.getElementById('balanceAmount'),
+  rankDisplay: () => document.getElementById('rankDisplay'),
+  rankBelt: () => document.getElementById('rankBelt'),
+  rankName: () => document.getElementById('rankName'),
 
   // Volume controls
   volumeControl: () => document.getElementById('volumeControl'),
   volumeToggle: () => document.getElementById('volumeToggle'),
   volumeSlider: () => document.getElementById('volumeSlider'),
   volumeIcon: () => document.getElementById('volumeIcon'),
+
+  // Game table & avatars
+  gameTable: () => document.querySelector('.game-table'),
+  karatekaAvatar: () => document.getElementById('karatekaAvatar'),
 
   // Message
   messageText: () => document.getElementById('messageText'),
@@ -87,6 +94,104 @@ const elements = {
   playerCards: (i) => document.getElementById(`playerCards${i}`),
   playerValue: (i) => document.getElementById(`playerValue${i}`),
   playerBet: (i) => document.getElementById(`playerBet${i}`)
+}
+
+// =============================================================================
+// BELT RANK SYSTEM
+// =============================================================================
+
+/**
+ * Belt ranks based on balance thresholds.
+ * @type {Array<{name: string, class: string, minBalance: number}>}
+ */
+const BELT_RANKS = [
+  { name: 'White Belt', class: 'rank-white', minBalance: 0 },
+  { name: 'Yellow Belt', class: 'rank-yellow', minBalance: 500 },
+  { name: 'Orange Belt', class: 'rank-orange', minBalance: 1000 },
+  { name: 'Green Belt', class: 'rank-green', minBalance: 2000 },
+  { name: 'Blue Belt', class: 'rank-blue', minBalance: 3500 },
+  { name: 'Purple Belt', class: 'rank-purple', minBalance: 5000 },
+  { name: 'Brown Belt', class: 'rank-brown', minBalance: 7500 },
+  { name: 'Red Belt', class: 'rank-red', minBalance: 10000 },
+  { name: 'Black Belt', class: 'rank-black', minBalance: 15000 }
+]
+
+/**
+ * Updates the belt rank display based on current balance.
+ * @param {number} balance - Current player balance
+ */
+function updateBeltRank(balance) {
+  const rankDisplay = elements.rankDisplay()
+  const rankName = elements.rankName()
+
+  if (!rankDisplay || !rankName) return
+
+  // Find the highest rank the player has achieved
+  let currentRank = BELT_RANKS[0]
+  for (const rank of BELT_RANKS) {
+    if (balance >= rank.minBalance) {
+      currentRank = rank
+    }
+  }
+
+  // Remove all rank classes and add current one
+  BELT_RANKS.forEach((rank) => rankDisplay.classList.remove(rank.class))
+  rankDisplay.classList.add(currentRank.class)
+  rankName.textContent = currentRank.name
+}
+
+// =============================================================================
+// IMPACT EFFECTS
+// =============================================================================
+
+/**
+ * Triggers screen shake effect on the game table.
+ */
+function triggerScreenShake() {
+  const table = elements.gameTable()
+  if (!table) return
+
+  table.classList.add('shake')
+  setTimeout(() => table.classList.remove('shake'), 400)
+}
+
+/**
+ * Triggers victory animation on karateka avatar.
+ */
+function triggerVictoryPose() {
+  const avatar = elements.karatekaAvatar()
+  if (!avatar) return
+
+  avatar.classList.remove('defeat')
+  avatar.classList.add('victory')
+  setTimeout(() => avatar.classList.remove('victory'), 600)
+}
+
+/**
+ * Triggers defeat animation on karateka avatar.
+ */
+function triggerDefeatPose() {
+  const avatar = elements.karatekaAvatar()
+  if (!avatar) return
+
+  avatar.classList.remove('victory')
+  avatar.classList.add('defeat')
+  setTimeout(() => avatar.classList.remove('defeat'), 600)
+}
+
+/**
+ * Creates an impact star effect at the specified position.
+ * @param {number} x - X coordinate
+ * @param {number} y - Y coordinate
+ */
+function createImpactStar(x, y) {
+  const star = document.createElement('div')
+  star.className = 'impact-star'
+  star.style.left = `${x}px`
+  star.style.top = `${y}px`
+
+  document.body.appendChild(star)
+  setTimeout(() => star.remove(), 500)
 }
 
 // =============================================================================
@@ -149,8 +254,9 @@ function renderCards(container, cards, hideFirst = false) {
 function updateUI() {
   const state = game.getState()
 
-  // Update balance
+  // Update balance and belt rank
   elements.balanceAmount().textContent = `$${state.balance}`
+  updateBeltRank(state.balance)
 
   // Update current bet display
   elements.currentBetAmount().textContent = `$${currentBet}`
@@ -559,6 +665,10 @@ async function completeRoundIfNeeded() {
  * @param {Array} results - Array of result objects
  */
 async function animateResultsWithSound(results) {
+  // Determine overall outcome for avatar animation
+  const hasWin = results.some((r) => r.outcome === 'win' || r.outcome === 'blackjack')
+  const hasLoss = results.some((r) => r.outcome === 'lose' || r.outcome === 'bust')
+
   for (const result of results) {
     // Play sound based on outcome
     playResultSound(result.outcome)
@@ -578,6 +688,14 @@ async function animateResultsWithSound(results) {
 
     // Small delay between hands
     await new Promise((resolve) => setTimeout(resolve, 300))
+  }
+
+  // Trigger avatar animation based on overall outcome
+  if (hasWin && !hasLoss) {
+    triggerVictoryPose()
+  } else if (hasLoss && !hasWin) {
+    triggerDefeatPose()
+    triggerScreenShake()
   }
 }
 
@@ -678,6 +796,8 @@ async function hit() {
   // Show bust result immediately
   if (hand?.isBust && animationCoordinator) {
     await animationCoordinator.animateHandResult(activeHandIndex, 'bust', 'BUST!')
+    triggerScreenShake()
+    triggerDefeatPose()
   }
 
   // If hand busted or standing, move to next hand
@@ -754,6 +874,8 @@ async function doubleDown() {
   // Show bust result immediately if doubled and busted
   if (hand?.isBust && animationCoordinator) {
     await animationCoordinator.animateHandResult(activeHandIndex, 'bust', 'BUST!')
+    triggerScreenShake()
+    triggerDefeatPose()
   }
 
   activeHandIndex++

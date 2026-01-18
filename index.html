@@ -10,6 +10,10 @@
 
   <!-- Preconnect for performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Brush stroke font for karate theme -->
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
 
   <!-- Main stylesheet -->
   <link rel="stylesheet" href="css/styles.css">
@@ -34,6 +38,10 @@
                  min="0" max="100" value="70"
                  aria-label="Volume level">
         </div>
+        <div class="rank-display" id="rankDisplay">
+          <span class="rank-belt" id="rankBelt"></span>
+          <span class="rank-name" id="rankName">White Belt</span>
+        </div>
         <div class="balance-display" id="balanceDisplay">
           <span class="balance-label">Balance:</span>
           <span class="balance-amount" id="balanceAmount">$1000</span>
@@ -50,12 +58,24 @@
 
       <!-- Game Table -->
       <div class="game-table">
+        <!-- Dojo decorations -->
+        <div class="dojo-lantern dojo-lantern-left" aria-hidden="true">
+          <img src="assets/lantern.svg" alt="" width="40" height="60">
+        </div>
+        <div class="dojo-lantern dojo-lantern-right" aria-hidden="true">
+          <img src="assets/lantern.svg" alt="" width="40" height="60">
+        </div>
+
         <!-- Dealer Section -->
         <section class="dealer-section" aria-label="Dealer's hand">
+          <!-- Sensei avatar -->
+          <div class="character-avatar sensei-avatar" aria-hidden="true">
+            <img src="assets/sensei.svg" alt="" width="60" height="75">
+          </div>
           <div class="dealer-area">
             <div class="dealer-hand-container">
               <div class="hand-info">
-                <span class="hand-label">Dealer</span>
+                <span class="hand-label">先生</span>
                 <span class="hand-value" id="dealerValue">--</span>
               </div>
               <div class="dealer-hand card-container" id="dealerHand">
@@ -82,6 +102,10 @@
 
         <!-- Player Section -->
         <section class="player-section" aria-label="Player's hands">
+          <!-- Karateka avatar -->
+          <div class="character-avatar karateka-avatar" id="karatekaAvatar" aria-hidden="true">
+            <img src="assets/karateka.svg" alt="" width="60" height="75">
+          </div>
           <!-- Player hands container (supports 1-3 hands) -->
           <div class="player-hands" id="playerHands">
             <!-- Hand 1 -->

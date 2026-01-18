@@ -67,6 +67,23 @@
   /* Font Families */
   --font-family-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-family-heading: var(--font-family-base);
+  --font-family-karate: 'Permanent Marker', cursive;
+
+  /* Belt Colors */
+  --belt-white: #f5f5f5;
+  --belt-yellow: #ffd700;
+  --belt-orange: #ff8c00;
+  --belt-green: #228b22;
+  --belt-blue: #1e90ff;
+  --belt-purple: #8b008b;
+  --belt-brown: #8b4513;
+  --belt-red: #c41e3a;
+  --belt-black: #1a1a1a;
+
+  /* Dojo Theme Colors */
+  --dojo-wood: #8b6914;
+  --dojo-bamboo: #5d7a3a;
+  --dojo-tatami: #c4a35a;
 
   /* Border Radius */
   --radius-sm: 4px;
@@ -241,6 +258,7 @@ ol {
 }
 
 .game-title {
+  font-family: var(--font-family-karate);
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--color-accent);
@@ -471,6 +489,211 @@ ol {
   gap: var(--space-lg);
   flex: 1;
   min-height: 0;
+  position: relative;
+
+  /* Dojo theme - tatami mat pattern */
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(139, 105, 20, 0.1) 40px,
+      rgba(139, 105, 20, 0.1) 41px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 80px,
+      rgba(139, 105, 20, 0.15) 80px,
+      rgba(139, 105, 20, 0.15) 82px
+    ),
+    linear-gradient(135deg,
+      rgba(93, 122, 58, 0.2) 0%,
+      rgba(196, 163, 90, 0.3) 50%,
+      rgba(93, 122, 58, 0.2) 100%
+    );
+  border: 3px solid var(--dojo-wood);
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+/* =============================================================================
+   DOJO DECORATIONS
+   ============================================================================= */
+
+.dojo-lantern {
+  position: absolute;
+  top: 10px;
+  z-index: var(--z-base);
+  animation: lantern-sway 4s ease-in-out infinite;
+  filter: drop-shadow(0 4px 8px rgba(255, 100, 50, 0.3));
+}
+
+.dojo-lantern-left {
+  left: 10px;
+  animation-delay: 0s;
+}
+
+.dojo-lantern-right {
+  right: 10px;
+  animation-delay: 2s;
+}
+
+@keyframes lantern-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* =============================================================================
+   CHARACTER AVATARS
+   ============================================================================= */
+
+.character-avatar {
+  position: absolute;
+  z-index: var(--z-base);
+  transition: transform var(--transition-base);
+}
+
+.character-avatar img {
+  filter: drop-shadow(2px 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.sensei-avatar {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-180px);
+}
+
+.karateka-avatar {
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-180px);
+}
+
+/* Victory/defeat animations for karateka */
+.karateka-avatar.victory {
+  animation: victory-pose 0.6s ease-out;
+}
+
+.karateka-avatar.defeat {
+  animation: defeat-pose 0.6s ease-out;
+}
+
+@keyframes victory-pose {
+  0% { transform: translateX(-180px) scale(1); }
+  50% { transform: translateX(-180px) scale(1.15) translateY(-10px); }
+  100% { transform: translateX(-180px) scale(1); }
+}
+
+@keyframes defeat-pose {
+  0% { transform: translateX(-180px) rotate(0deg); }
+  25% { transform: translateX(-180px) rotate(-10deg); }
+  75% { transform: translateX(-180px) rotate(5deg); }
+  100% { transform: translateX(-180px) rotate(0deg); }
+}
+
+/* =============================================================================
+   BELT RANK SYSTEM
+   ============================================================================= */
+
+.rank-display {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.rank-belt {
+  width: 30px;
+  height: 8px;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.rank-name {
+  font-family: var(--font-family-karate);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+}
+
+/* Belt color classes */
+.rank-white .rank-belt { background: var(--belt-white); }
+.rank-yellow .rank-belt { background: var(--belt-yellow); }
+.rank-orange .rank-belt { background: var(--belt-orange); }
+.rank-green .rank-belt { background: var(--belt-green); }
+.rank-blue .rank-belt { background: var(--belt-blue); }
+.rank-purple .rank-belt { background: var(--belt-purple); }
+.rank-brown .rank-belt { background: var(--belt-brown); }
+.rank-red .rank-belt { background: var(--belt-red); }
+.rank-black .rank-belt {
+  background: linear-gradient(90deg, var(--belt-black) 0%, var(--belt-black) 70%, var(--color-accent) 70%, var(--color-accent) 75%, var(--belt-black) 75%);
+}
+
+/* =============================================================================
+   IMPACT EFFECTS & ANIMATIONS
+   ============================================================================= */
+
+/* Screen shake on bust */
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.game-table.shake {
+  animation: screen-shake 0.4s ease-out;
+}
+
+/* Impact star effect */
+.impact-star {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  z-index: var(--z-modal);
+}
+
+.impact-star::before {
+  content: "💥";
+  font-size: 2rem;
+  animation: impact-burst 0.5s ease-out forwards;
+}
+
+@keyframes impact-burst {
+  0% { transform: scale(0) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.5) rotate(180deg); opacity: 1; }
+  100% { transform: scale(2) rotate(360deg); opacity: 0; }
+}
+
+/* Whoosh lines for card deals */
+@keyframes whoosh-line {
+  0% { transform: scaleX(0); opacity: 0.8; }
+  100% { transform: scaleX(1); opacity: 0; }
+}
+
+.card.dealing::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -50px;
+  width: 50px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+  transform-origin: right center;
+  animation: whoosh-line 0.3s ease-out;
+}
+
+/* Blackjack celebration */
+@keyframes blackjack-glow {
+  0%, 100% { box-shadow: 0 0 10px var(--color-accent); }
+  50% { box-shadow: 0 0 30px var(--color-accent), 0 0 60px var(--color-accent-light); }
+}
+
+.hand-result.blackjack-celebration {
+  animation: blackjack-glow 0.5s ease-in-out 3;
 }
 
 /* =============================================================================
@@ -1377,6 +1600,20 @@ ol {
   .btn-action {
     font-size: var(--font-size-base);
     padding: var(--space-sm);
+  }
+
+  /* Hide decorative elements on very small screens */
+  .dojo-lantern,
+  .character-avatar {
+    display: none;
+  }
+
+  .rank-display {
+    padding: var(--space-xs);
+  }
+
+  .rank-name {
+    font-size: var(--font-size-xs);
   }
 }
 

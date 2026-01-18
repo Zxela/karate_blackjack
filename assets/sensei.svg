@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100">
+  <defs>
+    <linearGradient id="senseiGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4d03f"/>
+      <stop offset="100%" style="stop-color:#d4af37"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Sensei figure - standing wise pose with crossed arms -->
+  <g fill="#e8e8e8">
+    <!-- Head -->
+    <circle cx="40" cy="18" r="12"/>
+
+    <!-- Bald head shine -->
+    <ellipse cx="36" cy="14" rx="4" ry="2" fill="#fff" opacity="0.3"/>
+
+    <!-- Eyebrows (stern/wise) -->
+    <path d="M32,16 L37,14" stroke="#333" stroke-width="1.5" fill="none"/>
+    <path d="M43,14 L48,16" stroke="#333" stroke-width="1.5" fill="none"/>
+
+    <!-- Eyes -->
+    <circle cx="35" cy="18" r="1.5" fill="#333"/>
+    <circle cx="45" cy="18" r="1.5" fill="#333"/>
+
+    <!-- Beard -->
+    <path d="M32,24 Q40,35 48,24" fill="#ccc"/>
+    <path d="M36,26 L40,38 L44,26" fill="#ccc"/>
+  </g>
+
+  <!-- Gi (uniform) -->
+  <g fill="#f5f5f5">
+    <!-- Body -->
+    <path d="M25,30 L20,75 L35,80 L40,78 L45,80 L60,75 L55,30 Z"/>
+
+    <!-- Gi lapel -->
+    <path d="M35,30 L40,55 L45,30" fill="#ddd"/>
+    <path d="M35,30 L32,45 L40,55" fill="none" stroke="#ccc" stroke-width="1"/>
+    <path d="M45,30 L48,45 L40,55" fill="none" stroke="#ccc" stroke-width="1"/>
+  </g>
+
+  <!-- Black belt (master) -->
+  <rect x="22" y="52" width="36" height="6" rx="1" fill="#1a1a1a"/>
+  <rect x="35" y="52" width="10" height="6" rx="1" fill="#222"/>
+  <!-- Belt stripes (dan ranks) -->
+  <g fill="url(#senseiGold)">
+    <rect x="24" y="53" width="2" height="4"/>
+    <rect x="27" y="53" width="2" height="4"/>
+    <rect x="30" y="53" width="2" height="4"/>
+  </g>
+
+  <!-- Arms crossed -->
+  <g fill="#f5f5f5">
+    <!-- Left arm -->
+    <path d="M20,35 L15,50 L25,55 L35,52 L30,40 Z"/>
+    <!-- Right arm -->
+    <path d="M60,35 L65,50 L55,55 L45,52 L50,40 Z"/>
+    <!-- Crossed forearms -->
+    <ellipse cx="40" cy="48" rx="18" ry="6" fill="#f5f5f5"/>
+  </g>
+
+  <!-- Hands -->
+  <g fill="#e8d5c4">
+    <circle cx="25" cy="50" r="4"/>
+    <circle cx="55" cy="50" r="4"/>
+  </g>
+
+  <!-- Legs -->
+  <g fill="#1a1a1a">
+    <path d="M28,75 L25,95 L35,95 L36,78"/>
+    <path d="M52,75 L55,95 L45,95 L44,78"/>
+  </g>
+</svg>
