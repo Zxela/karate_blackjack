@@ -40,6 +40,22 @@ let activeHandIndex = 0
 /** @type {boolean} */
 let isDealingAnimation = false
 
+/** @type {{wins: number, losses: number, startBalance: number, betHistory: number[]}} */
+let sessionStats = {
+  wins: 0,
+  losses: 0,
+  startBalance: 1000,
+  betHistory: [] // Track bets for undo functionality
+}
+
+/** @type {Object} */
+let settings = {
+  animationSpeed: 'normal',
+  tableColor: 'green',
+  showDeckCount: true,
+  showTutorial: true
+}
+
 // =============================================================================
 // DOM REFERENCES
 // =============================================================================
@@ -59,10 +75,18 @@ const elements = {
 
   // Game table & avatars
   gameTable: () => document.querySelector('.game-table'),
+  gameMain: () => document.querySelector('.game-main'),
   karatekaAvatar: () => document.getElementById('karatekaAvatar'),
 
   // Message
   messageText: () => document.getElementById('messageText'),
+
+  // Session stats
+  sessionRecord: () => document.getElementById('sessionRecord'),
+  sessionProfit: () => document.getElementById('sessionProfit'),
+
+  // Deck count
+  deckCount: () => document.getElementById('deckCount'),
 
   // Betting
   currentBetAmount: () => document.getElementById('currentBetAmount'),
@@ -79,6 +103,7 @@ const elements = {
 
   // Insurance
   insuranceControls: () => document.getElementById('insuranceControls'),
+  insuranceDetails: () => document.getElementById('insuranceDetails'),
 
   // New Round
   newRoundControls: () => document.getElementById('newRoundControls'),
@@ -93,7 +118,19 @@ const elements = {
   playerHand: (i) => document.getElementById(`playerHand${i}`),
   playerCards: (i) => document.getElementById(`playerCards${i}`),
   playerValue: (i) => document.getElementById(`playerValue${i}`),
-  playerBet: (i) => document.getElementById(`playerBet${i}`)
+  playerBet: (i) => document.getElementById(`playerBet${i}`),
+  chipStack: (i) => document.getElementById(`chipStack${i}`),
+
+  // Settings & Tutorial
+  settingsButton: () => document.getElementById('settingsButton'),
+  settingsPanel: () => document.getElementById('settingsPanel'),
+  settingsClose: () => document.getElementById('settingsClose'),
+  settingsSave: () => document.getElementById('settingsSave'),
+  resetStats: () => document.getElementById('resetStats'),
+  tutorialOverlay: () => document.getElementById('tutorialOverlay'),
+  tutorialClose: () => document.getElementById('tutorialClose'),
+  tutorialStart: () => document.getElementById('tutorialStart'),
+  dontShowAgain: () => document.getElementById('dontShowAgain')
 }
 
 // =============================================================================
@@ -138,6 +175,158 @@ function updateBeltRank(balance) {
   BELT_RANKS.forEach((rank) => rankDisplay.classList.remove(rank.class))
   rankDisplay.classList.add(currentRank.class)
   rankName.textContent = currentRank.name
+}
+
+// =============================================================================
+// SESSION STATS
+// =============================================================================
+
+/**
+ * Updates the session stats display.
+ */
+function updateSessionStats() {
+  const recordEl = elements.sessionRecord()
+  const profitEl = elements.sessionProfit()
+  const state = game.getState()
+
+  if (recordEl) {
+    recordEl.textContent = `W/L: ${sessionStats.wins}/${sessionStats.losses}`
+  }
+
+  if (profitEl) {
+    const profit = state.balance - sessionStats.startBalance
+    const sign = profit >= 0 ? '+' : ''
+    profitEl.textContent = `${sign}$${profit}`
+    profitEl.classList.remove('positive', 'negative', 'neutral')
+    if (profit > 0) {
+      profitEl.classList.add('positive')
+    } else if (profit < 0) {
+      profitEl.classList.add('negative')
+    } else {
+      profitEl.classList.add('neutral')
+    }
+  }
+}
+
+/**
+ * Records a win in session stats.
+ */
+function recordWin() {
+  sessionStats.wins++
+  updateSessionStats()
+}
+
+/**
+ * Records a loss in session stats.
+ */
+function recordLoss() {
+  sessionStats.losses++
+  updateSessionStats()
+}
+
+/**
+ * Resets session stats.
+ */
+function resetSessionStats() {
+  const state = game.getState()
+  sessionStats.wins = 0
+  sessionStats.losses = 0
+  sessionStats.startBalance = state.balance
+  sessionStats.betHistory = []
+  updateSessionStats()
+}
+
+// =============================================================================
+// CHIP DISPLAY
+// =============================================================================
+
+/**
+ * Breaks an amount into chip denominations.
+ * @param {number} amount - Amount to break into chips
+ * @returns {number[]} - Array of chip values
+ */
+function breakIntoChips(amount) {
+  const denominations = [500, 100, 50, 10]
+  const chips = []
+  let remaining = amount
+
+  for (const denom of denominations) {
+    while (remaining >= denom) {
+      chips.push(denom)
+      remaining -= denom
+    }
+  }
+
+  return chips
+}
+
+/**
+ * Renders chip stack for a hand.
+ * @param {number} handIndex - Hand index
+ * @param {number} amount - Bet amount
+ */
+function renderChipStack(handIndex, amount) {
+  const stackEl = elements.chipStack(handIndex)
+  if (!stackEl) return
+
+  stackEl.innerHTML = ''
+
+  if (amount <= 0) return
+
+  const chips = breakIntoChips(amount)
+
+  // Limit display to max 8 chips for readability
+  const displayChips = chips.slice(0, 8)
+
+  for (const value of displayChips) {
+    const chip = document.createElement('div')
+    chip.className = `chip chip-${value}`
+    chip.textContent = `$${value}`
+    chip.setAttribute('aria-label', `$${value} chip`)
+    stackEl.appendChild(chip)
+  }
+
+  // Show overflow indicator if more chips
+  if (chips.length > 8) {
+    const overflow = document.createElement('div')
+    overflow.className = 'chip-overflow'
+    overflow.textContent = `+${chips.length - 8}`
+    stackEl.appendChild(overflow)
+  }
+}
+
+/**
+ * Clears all chip stacks.
+ */
+function clearAllChipStacks() {
+  for (let i = 0; i < 3; i++) {
+    const stackEl = elements.chipStack(i)
+    if (stackEl) {
+      stackEl.innerHTML = ''
+    }
+  }
+}
+
+// =============================================================================
+// DECK COUNT
+// =============================================================================
+
+/**
+ * Updates the deck count display.
+ */
+function updateDeckCount() {
+  const deckCountEl = elements.deckCount()
+  if (!deckCountEl) return
+
+  const state = game.getState()
+  deckCountEl.textContent = state.deckCount || 52
+
+  // Hide if settings say so
+  if (!settings.showDeckCount) {
+    deckCountEl.style.display = 'none'
+  } else {
+    deckCountEl.style.display = ''
+  }
 }
 
 // =============================================================================
@@ -274,6 +463,19 @@ function renderCards(container, cards, hideFirst = false) {
 // =============================================================================
 
 /**
+ * Formats hand value with soft indicator.
+ * @param {Object} hand - Hand object with value and isSoft properties
+ * @returns {string} - Formatted value string
+ */
+function formatHandValue(hand) {
+  if (!hand || hand.value <= 0) return '--'
+  if (hand.isSoft && hand.value <= 21) {
+    return `Soft ${hand.value}`
+  }
+  return `${hand.value}`
+}
+
+/**
  * Updates the entire UI based on game state.
  */
 function updateUI() {
@@ -282,6 +484,10 @@ function updateUI() {
   // Update balance and belt rank
   elements.balanceAmount().textContent = `$${state.balance}`
   updateBeltRank(state.balance)
+
+  // Update session stats and deck count
+  updateSessionStats()
+  updateDeckCount()
 
   // Update current bet display
   elements.currentBetAmount().textContent = `$${currentBet}`
@@ -306,8 +512,13 @@ function updateUI() {
       : 0
     elements.dealerValue().textContent = visibleValue > 0 ? `${visibleValue}` : '--'
   } else {
-    elements.dealerValue().textContent =
-      state.dealerHand.value > 0 ? `${state.dealerHand.value}` : '--'
+    // Show dealer value with soft indicator
+    const dealerValue = state.dealerHand.value
+    if (dealerValue > 0 && state.dealerHand.isSoft && dealerValue <= 21) {
+      elements.dealerValue().textContent = `Soft ${dealerValue}`
+    } else {
+      elements.dealerValue().textContent = dealerValue > 0 ? `${dealerValue}` : '--'
+    }
   }
 
   // Update player hands
@@ -328,17 +539,26 @@ function updateUI() {
       )
 
       renderCards(elements.playerCards(i), hand.cards)
-      elements.playerValue(i).textContent = hand.value > 0 ? `${hand.value}` : '--'
+      // Show soft indicator for player hands
+      elements.playerValue(i).textContent = formatHandValue(hand)
       elements.playerBet(i).textContent = hand.bet > 0 ? `$${hand.bet}` : ''
+
+      // Render chip stack for this hand
+      renderChipStack(i, hand.bet || 0)
     } else if (i < handCount && state.phase === GAME_PHASES.BETTING) {
-      // During betting, show empty hand slots
+      // During betting, show empty hand slots with current bet chips
       handEl.classList.remove('hidden')
       handEl.classList.remove('active')
       renderCards(elements.playerCards(i), [])
       elements.playerValue(i).textContent = '--'
-      elements.playerBet(i).textContent = ''
+      elements.playerBet(i).textContent = currentBet > 0 ? `$${currentBet}` : ''
+
+      // Show bet chips during betting phase
+      renderChipStack(i, currentBet)
     } else {
       handEl.classList.add('hidden')
+      // Clear chips for hidden hands
+      renderChipStack(i, 0)
     }
   }
 
@@ -377,12 +597,20 @@ function updatePhaseUI(state) {
       updateActionButtons()
       break
 
-    case GAME_PHASES.INSURANCE_CHECK:
+    case GAME_PHASES.INSURANCE_CHECK: {
       elements.insuranceControls().classList.remove('hidden')
       messageEl.textContent = 'Dealer shows Ace - Insurance?'
+      // Update insurance details with actual costs
+      const insuranceCost = Math.floor(currentBet / 2)
+      const insurancePayout = insuranceCost * 2
+      const detailsEl = elements.insuranceDetails()
+      if (detailsEl) {
+        detailsEl.textContent = `Cost: $${insuranceCost} | Pays $${insurancePayout} if dealer has blackjack`
+      }
       // Play insurance offer alert sound
       audioManager.play('insuranceOffer')
       break
+    }
 
     case GAME_PHASES.DEALER_TURN:
       messageEl.textContent = "Dealer's turn"
@@ -430,33 +658,48 @@ function updateActionButtons() {
 }
 
 /**
- * Displays round results.
+ * Displays round results and updates session stats.
  * @param {import('./types/index.js').GameState} state
  */
 function displayResults(state) {
   const messageEl = elements.messageText()
   const results = []
+  let roundWins = 0
+  let roundLosses = 0
 
   for (let i = 0; i < state.playerHands.length; i++) {
     const hand = state.playerHands[i]
     if (!hand || hand.cards.length === 0) continue
 
     let outcome = ''
+    let isWin = false
+    let isLoss = false
+
     if (hand.isBust) {
       outcome = 'Bust'
+      isLoss = true
     } else if (state.dealerHand.isBust) {
       outcome = 'Win (Dealer Bust)'
+      isWin = true
     } else if (hand.isBlackjack && !state.dealerHand.isBlackjack) {
       outcome = 'Blackjack!'
+      isWin = true
     } else if (state.dealerHand.isBlackjack && !hand.isBlackjack) {
       outcome = 'Lose (Dealer BJ)'
+      isLoss = true
     } else if (hand.value > state.dealerHand.value) {
       outcome = 'Win'
+      isWin = true
     } else if (hand.value < state.dealerHand.value) {
       outcome = 'Lose'
+      isLoss = true
     } else {
       outcome = 'Push'
+      // Push is neither win nor loss
     }
+
+    if (isWin) roundWins++
+    if (isLoss) roundLosses++
 
     if (state.playerHands.length > 1) {
       results.push(`Hand ${i + 1}: ${outcome}`)
@@ -464,6 +707,14 @@ function displayResults(state) {
       results.push(outcome)
     }
   }
+
+  // Update session stats
+  sessionStats.wins += roundWins
+  sessionStats.losses += roundLosses
+  updateSessionStats()
+
+  // Clear bet history after round completes
+  sessionStats.betHistory = []
 
   messageEl.textContent = results.join(' | ')
 }
@@ -481,12 +732,17 @@ async function addBet(amount) {
   if (state.phase !== GAME_PHASES.BETTING) return
   if (isAnimating) return
 
-  const maxBet = Math.min(state.balance, 1000)
+  // Max bet per hand is limited by total balance divided by number of hands
+  const maxBetPerHand = Math.floor(state.balance / handCount)
+  const maxBet = Math.min(maxBetPerHand, 1000)
   const newBet = Math.min(currentBet + amount, maxBet)
 
   // Only add chips if bet actually increased
   if (newBet > currentBet) {
     const chipAmount = newBet - currentBet
+
+    // Track bet history for undo
+    sessionStats.betHistory.push(chipAmount)
 
     // Play chip sound
     audioManager.play('chipPlace')
@@ -515,6 +771,7 @@ function clearBet() {
   }
 
   currentBet = 0
+  sessionStats.betHistory = [] // Clear bet history
 
   // Clear chips from table
   if (animationCoordinator) {
@@ -1187,6 +1444,254 @@ function updateVolumeUI() {
 }
 
 // =============================================================================
+// KEYBOARD SHORTCUTS
+// =============================================================================
+
+/**
+ * Sets up keyboard shortcuts for game actions.
+ */
+function setupKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ignore if typing in an input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return
+
+    const state = game.getState()
+
+    switch (e.key.toLowerCase()) {
+      case 'h':
+        if (state.phase === GAME_PHASES.PLAYER_TURN && !elements.hitButton().disabled) {
+          hit()
+        }
+        break
+      case 's':
+        if (state.phase === GAME_PHASES.PLAYER_TURN && !elements.standButton().disabled) {
+          stand()
+        }
+        break
+      case 'd':
+        if (state.phase === GAME_PHASES.PLAYER_TURN && !elements.doubleButton().disabled) {
+          doubleDown()
+        }
+        break
+      case 'p':
+        if (state.phase === GAME_PHASES.PLAYER_TURN && !elements.splitButton().disabled) {
+          splitHand()
+        }
+        break
+      case ' ':
+      case 'enter':
+        e.preventDefault()
+        if (state.phase === GAME_PHASES.BETTING && !elements.dealButton().disabled) {
+          deal()
+        } else if (
+          state.phase === GAME_PHASES.RESOLUTION ||
+          state.phase === GAME_PHASES.GAME_OVER
+        ) {
+          newRound()
+        }
+        break
+      case 'y':
+        if (state.phase === GAME_PHASES.INSURANCE_CHECK) {
+          takeInsurance()
+        }
+        break
+      case 'n':
+        if (state.phase === GAME_PHASES.INSURANCE_CHECK) {
+          declineInsurance()
+        }
+        break
+      case 'escape':
+        // Close settings or tutorial if open
+        elements.settingsPanel()?.classList.add('hidden')
+        elements.tutorialOverlay()?.classList.add('hidden')
+        break
+    }
+  })
+}
+
+// =============================================================================
+// SETTINGS PANEL
+// =============================================================================
+
+/**
+ * Loads settings from localStorage.
+ */
+function loadSettings() {
+  const saved = localStorage.getItem('karateBlackjack_settings')
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      settings = { ...settings, ...parsed }
+    } catch {
+      console.warn('Failed to parse saved settings')
+    }
+  }
+
+  // Apply loaded settings
+  applySettings()
+}
+
+/**
+ * Saves settings to localStorage.
+ */
+function saveSettings() {
+  localStorage.setItem('karateBlackjack_settings', JSON.stringify(settings))
+}
+
+/**
+ * Applies current settings to the UI.
+ */
+function applySettings() {
+  // Apply table color
+  const gameMain = elements.gameMain()
+  if (gameMain) {
+    gameMain.classList.remove('table-green', 'table-blue', 'table-red')
+    if (settings.tableColor !== 'green') {
+      gameMain.classList.add(`table-${settings.tableColor}`)
+    }
+  }
+
+  // Apply deck count visibility
+  updateDeckCount()
+
+  // Apply volume from settings
+  const savedVolume = localStorage.getItem('karateBlackjack_volume')
+  if (savedVolume) {
+    audioManager.setVolume(parseFloat(savedVolume))
+  }
+}
+
+/**
+ * Sets up settings panel event handlers.
+ */
+function setupSettingsPanel() {
+  const settingsButton = elements.settingsButton()
+  const settingsPanel = elements.settingsPanel()
+  const settingsClose = elements.settingsClose()
+  const settingsSave = elements.settingsSave()
+  const resetStatsBtn = elements.resetStats()
+
+  if (!settingsButton || !settingsPanel) return
+
+  // Open settings
+  settingsButton.addEventListener('click', () => {
+    settingsPanel.classList.remove('hidden')
+    // Populate current settings
+    const volumeInput = document.getElementById('settingsVolume')
+    const speedSelect = document.getElementById('animationSpeed')
+    const colorSelect = document.getElementById('tableColor')
+    const deckCountCheck = document.getElementById('showDeckCount')
+    const tutorialCheck = document.getElementById('showTutorial')
+
+    if (volumeInput) volumeInput.value = Math.round(audioManager.getVolume() * 100)
+    if (speedSelect) speedSelect.value = settings.animationSpeed
+    if (colorSelect) colorSelect.value = settings.tableColor
+    if (deckCountCheck) deckCountCheck.checked = settings.showDeckCount
+    if (tutorialCheck) tutorialCheck.checked = settings.showTutorial
+  })
+
+  // Close settings
+  settingsClose?.addEventListener('click', () => {
+    settingsPanel.classList.add('hidden')
+  })
+
+  // Save settings
+  settingsSave?.addEventListener('click', () => {
+    const volumeInput = document.getElementById('settingsVolume')
+    const speedSelect = document.getElementById('animationSpeed')
+    const colorSelect = document.getElementById('tableColor')
+    const deckCountCheck = document.getElementById('showDeckCount')
+    const tutorialCheck = document.getElementById('showTutorial')
+
+    if (volumeInput) {
+      const volume = parseInt(volumeInput.value) / 100
+      audioManager.setVolume(volume)
+      localStorage.setItem('karateBlackjack_volume', volume.toString())
+      updateVolumeUI()
+    }
+    if (speedSelect) settings.animationSpeed = speedSelect.value
+    if (colorSelect) settings.tableColor = colorSelect.value
+    if (deckCountCheck) settings.showDeckCount = deckCountCheck.checked
+    if (tutorialCheck) settings.showTutorial = tutorialCheck.checked
+
+    saveSettings()
+    applySettings()
+    settingsPanel.classList.add('hidden')
+  })
+
+  // Reset stats
+  resetStatsBtn?.addEventListener('click', () => {
+    resetSessionStats()
+  })
+
+  // Close on backdrop click
+  settingsPanel.addEventListener('click', (e) => {
+    if (e.target === settingsPanel) {
+      settingsPanel.classList.add('hidden')
+    }
+  })
+}
+
+// =============================================================================
+// TUTORIAL OVERLAY
+// =============================================================================
+
+/**
+ * Sets up tutorial overlay event handlers.
+ */
+function setupTutorialOverlay() {
+  const tutorialOverlay = elements.tutorialOverlay()
+  const tutorialClose = elements.tutorialClose()
+  const tutorialStart = elements.tutorialStart()
+  const dontShowAgain = elements.dontShowAgain()
+
+  if (!tutorialOverlay) return
+
+  const closeTutorial = () => {
+    tutorialOverlay.classList.add('hidden')
+    if (dontShowAgain?.checked) {
+      localStorage.setItem('karateBlackjack_tutorialSeen', 'true')
+      settings.showTutorial = false
+      saveSettings()
+    }
+  }
+
+  tutorialClose?.addEventListener('click', closeTutorial)
+  tutorialStart?.addEventListener('click', closeTutorial)
+
+  // Close on backdrop click
+  tutorialOverlay.addEventListener('click', (e) => {
+    if (e.target === tutorialOverlay) {
+      closeTutorial()
+    }
+  })
+}
+
+// =============================================================================
+// UNDO BET
+// =============================================================================
+
+/**
+ * Undoes the last bet addition.
+ */
+function undoLastBet() {
+  if (sessionStats.betHistory.length === 0) return
+
+  const state = game.getState()
+  if (state.phase !== GAME_PHASES.BETTING) return
+
+  const lastBet = sessionStats.betHistory.pop()
+  if (lastBet && currentBet >= lastBet) {
+    // Refund the bet
+    game._bettingSystem._balance += lastBet
+    currentBet -= lastBet
+
+    audioManager.play('buttonClick')
+    updateUI()
+  }
+}
+
+// =============================================================================
 // INITIALIZATION
 // =============================================================================
 
@@ -1224,6 +1729,16 @@ function initializeGame() {
   document.addEventListener('click', initAudioOnFirstInteraction, { once: true })
   document.addEventListener('keydown', initAudioOnFirstInteraction, { once: true })
 
+  // Load settings from localStorage
+  loadSettings()
+
+  // Setup keyboard shortcuts
+  setupKeyboardShortcuts()
+
+  // Setup settings and tutorial handlers
+  setupSettingsPanel()
+  setupTutorialOverlay()
+
   // Initial UI update
   updateUI()
 
@@ -1252,7 +1767,17 @@ function initializeGame() {
       audioManager.toggleMute()
       updateVolumeUI()
       return audioManager.isMuted()
+    },
+    closeTutorial: () => {
+      elements.tutorialOverlay()?.classList.add('hidden')
     }
+  }
+
+  // Show tutorial for first-time visitors (skip during E2E tests)
+  // Check for playwright or test API to skip in test environment
+  const isTestEnv = navigator.webdriver || window.playwright
+  if (settings.showTutorial && !localStorage.getItem('karateBlackjack_tutorialSeen') && !isTestEnv) {
+    elements.tutorialOverlay()?.classList.remove('hidden')
   }
 }
 

@@ -418,7 +418,7 @@ ol {
   opacity: 0.4;
 }
 
-/* Responsive: hide slider on very small screens */
+/* Responsive: small mobile screens */
 @media (max-width: 480px) {
   .volume-slider {
     display: none;
@@ -426,6 +426,75 @@ ol {
 
   .volume-control {
     gap: 0;
+  }
+
+  .game-header {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-xs);
+  }
+
+  .game-title {
+    width: 100%;
+    text-align: center;
+    font-size: var(--font-size-lg);
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: center;
+    gap: var(--space-sm);
+  }
+
+  .rank-display {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .rank-name {
+    font-size: var(--font-size-xs);
+  }
+
+  .balance-display {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .balance-label {
+    display: none;
+  }
+
+  .balance-amount {
+    font-size: var(--font-size-base);
+  }
+
+  /* Improve card readability on mobile */
+  .card-container {
+    gap: calc(var(--card-overlap) * -0.5);
+  }
+
+  /* Make action buttons more tappable */
+  .action-controls {
+    gap: var(--space-xs);
+  }
+
+  .btn-action {
+    flex: 1;
+    min-width: 70px;
+    max-width: none;
+    padding: var(--space-sm);
+    font-size: var(--font-size-base);
+  }
+
+  /* Betting controls layout */
+  .betting-controls {
+    gap: var(--space-sm);
+  }
+
+  .bet-presets {
+    gap: var(--space-xs);
+  }
+
+  .hand-selector {
+    gap: var(--space-xs);
   }
 }
 
@@ -1714,6 +1783,495 @@ ol {
   .game-controls {
     min-height: auto;
     padding: var(--space-sm);
+  }
+}
+
+/* =============================================================================
+   SETTINGS BUTTON
+   ============================================================================= */
+
+.btn-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--color-secondary-dark);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-settings:hover {
+  background: var(--color-secondary-light);
+  border-color: var(--color-accent-light);
+}
+
+.settings-icon::before {
+  content: "\2699"; /* Gear emoji */
+  font-size: 1.3rem;
+  color: var(--color-accent);
+}
+
+/* =============================================================================
+   SESSION STATS
+   ============================================================================= */
+
+.session-stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+}
+
+.stat-item {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.stat-record {
+  color: var(--color-text-secondary);
+}
+
+.stat-profit {
+  font-weight: 600;
+}
+
+.stat-profit.positive {
+  color: var(--color-success);
+}
+
+.stat-profit.negative {
+  color: var(--color-danger);
+}
+
+.stat-profit.neutral {
+  color: var(--color-text-secondary);
+}
+
+/* =============================================================================
+   DECK COUNT
+   ============================================================================= */
+
+.deck-count {
+  position: absolute;
+  bottom: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--color-accent-dark);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.deck-display {
+  position: relative;
+}
+
+/* =============================================================================
+   CHIP STACK DISPLAY
+   ============================================================================= */
+
+.chip-stack {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 30px;
+  gap: -8px;
+  margin-top: var(--space-xs);
+}
+
+.chip {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 1px 1px rgba(0,0,0,0.5);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+  border: 2px dashed rgba(255,255,255,0.4);
+  margin-left: -10px;
+  position: relative;
+}
+
+.chip:first-child {
+  margin-left: 0;
+}
+
+.chip-10 {
+  background: linear-gradient(135deg, #1E90FF, #1565C0);
+  z-index: 4;
+}
+
+.chip-50 {
+  background: linear-gradient(135deg, #DC143C, #B71C1C);
+  z-index: 3;
+}
+
+.chip-100 {
+  background: linear-gradient(135deg, #228B22, #1B5E20);
+  z-index: 2;
+}
+
+.chip-500 {
+  background: linear-gradient(135deg, #800080, #4A148C);
+  z-index: 1;
+}
+
+/* Stacked chips effect */
+.chip-stack .chip:nth-child(n+2) {
+  margin-top: -2px;
+}
+
+/* =============================================================================
+   INSURANCE INFO STYLING
+   ============================================================================= */
+
+.insurance-info {
+  text-align: center;
+  margin-bottom: var(--space-sm);
+}
+
+.insurance-details {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+}
+
+.insurance-buttons {
+  display: flex;
+  gap: var(--space-md);
+  justify-content: center;
+}
+
+.insurance-controls {
+  flex-direction: column;
+  align-items: center;
+}
+
+/* =============================================================================
+   SETTINGS PANEL
+   ============================================================================= */
+
+.settings-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-md);
+}
+
+.settings-content {
+  background: var(--color-secondary);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  max-width: 400px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  border-bottom: 1px solid var(--color-accent-dark);
+}
+
+.settings-header h2 {
+  color: var(--color-accent);
+  font-size: var(--font-size-xl);
+  margin: 0;
+}
+
+.btn-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.btn-close:hover {
+  background: var(--color-secondary-light);
+  color: var(--color-text-primary);
+}
+
+.settings-body {
+  padding: var(--space-md);
+}
+
+.settings-group {
+  margin-bottom: var(--space-md);
+}
+
+.settings-group label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.settings-group input[type="range"] {
+  width: 100%;
+  height: 6px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--color-secondary-dark);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.settings-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--color-accent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.settings-group select {
+  width: 100%;
+  padding: var(--space-sm);
+  background: var(--color-secondary-dark);
+  border: 1px solid var(--color-accent-dark);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-accent);
+}
+
+.settings-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-md);
+  border-top: 1px solid var(--color-accent-dark);
+}
+
+/* =============================================================================
+   TUTORIAL OVERLAY
+   ============================================================================= */
+
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-modal);
+  padding: var(--space-md);
+}
+
+.tutorial-content {
+  background: linear-gradient(135deg, var(--color-secondary), var(--color-secondary-dark));
+  border: 3px solid var(--color-accent);
+  border-radius: var(--radius-xl);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 0 40px rgba(212, 175, 55, 0.3);
+}
+
+.tutorial-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 2px solid var(--color-accent-dark);
+}
+
+.tutorial-header h2 {
+  color: var(--color-accent);
+  font-family: var(--font-family-karate);
+  font-size: var(--font-size-2xl);
+  margin: 0;
+}
+
+.tutorial-body {
+  padding: var(--space-lg);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.tutorial-step {
+  background: rgba(0, 0, 0, 0.3);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-accent-dark);
+  text-align: center;
+}
+
+.tutorial-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+.tutorial-step h3 {
+  color: var(--color-accent);
+  font-size: var(--font-size-lg);
+  margin-bottom: var(--space-xs);
+}
+
+.tutorial-step p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.tutorial-step strong {
+  color: var(--color-text-primary);
+}
+
+.tutorial-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-top: 2px solid var(--color-accent-dark);
+}
+
+.tutorial-footer .checkbox-label {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+/* =============================================================================
+   TABLE COLOR THEMES
+   ============================================================================= */
+
+.game-main.table-blue {
+  background: linear-gradient(180deg, #1a3a5c 0%, #0d2137 100%);
+}
+
+.game-main.table-blue .game-table {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(100, 149, 237, 0.1) 40px,
+      rgba(100, 149, 237, 0.1) 41px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 80px,
+      rgba(100, 149, 237, 0.15) 80px,
+      rgba(100, 149, 237, 0.15) 82px
+    ),
+    linear-gradient(135deg,
+      rgba(30, 60, 114, 0.2) 0%,
+      rgba(42, 82, 152, 0.3) 50%,
+      rgba(30, 60, 114, 0.2) 100%
+    );
+  border-color: #4169e1;
+}
+
+.game-main.table-red {
+  background: linear-gradient(180deg, #5c1a1a 0%, #370d0d 100%);
+}
+
+.game-main.table-red .game-table {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 40px,
+      rgba(139, 20, 40, 0.1) 40px,
+      rgba(139, 20, 40, 0.1) 41px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 80px,
+      rgba(139, 20, 40, 0.15) 80px,
+      rgba(139, 20, 40, 0.15) 82px
+    ),
+    linear-gradient(135deg,
+      rgba(100, 20, 20, 0.2) 0%,
+      rgba(139, 20, 40, 0.3) 50%,
+      rgba(100, 20, 20, 0.2) 100%
+    );
+  border-color: #8b1428;
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS FOR NEW ELEMENTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  .session-stats {
+    display: none; /* Hide on smaller tablets and below */
+  }
+
+  .tutorial-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-settings {
+    width: 36px;
+    height: 36px;
+  }
+
+  .settings-icon::before {
+    font-size: 1.1rem;
+  }
+
+  .deck-count {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+
+  .chip {
+    width: 22px;
+    height: 22px;
+    font-size: 7px;
+    margin-left: -8px;
+  }
+
+  .tutorial-header h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  .tutorial-icon {
+    font-size: 2rem;
   }
 }
 

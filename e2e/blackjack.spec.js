@@ -631,30 +631,60 @@ test.describe('Karate Blackjack Game', () => {
   test.describe('Game Flow Edge Cases', () => {
     test('can complete multiple consecutive rounds', async ({ page }) => {
       for (let round = 0; round < 3; round++) {
+        // Ensure betting controls are visible before starting
+        await expect(page.locator('#bettingControls')).toBeVisible({ timeout: 10000 })
+
+        // Wait for any animations to complete before placing bet
+        await page.waitForTimeout(1000)
+
+        // Click bet and wait for deal button to become enabled
         await page.click('[data-bet="10"]')
+        await expect(page.locator('#dealButton')).toBeEnabled({ timeout: 5000 })
         await page.click('#dealButton')
-        await page.waitForTimeout(3000)
 
-        // Handle insurance
-        if (await page.locator('#insuranceControls').isVisible()) {
-          await page.click('#insuranceNoButton')
-          await page.waitForTimeout(1000)
+        // Wait for deal animation to complete - cards should appear
+        await expect(page.locator('#playerCards0 .card')).toHaveCount(2, { timeout: 10000 })
+
+        // Poll until round completes, handling insurance and action controls as needed
+        let roundComplete = false
+        for (let i = 0; i < 30 && !roundComplete; i++) {
+          const insuranceVisible = await page
+            .locator('#insuranceControls')
+            .isVisible()
+            .catch(() => false)
+          const actionVisible = await page
+            .locator('#actionControls')
+            .isVisible()
+            .catch(() => false)
+          const newRoundVisible = await page
+            .locator('#newRoundControls')
+            .isVisible()
+            .catch(() => false)
+
+          if (newRoundVisible) {
+            roundComplete = true
+          } else if (insuranceVisible) {
+            // Decline insurance
+            await page.click('#insuranceNoButton')
+            await page.waitForTimeout(500)
+          } else if (actionVisible) {
+            // Player's turn - click stand
+            await page.click('#standButton')
+            await page.waitForTimeout(500)
+          } else {
+            // Wait for state change
+            await page.waitForTimeout(500)
+          }
         }
 
-        // Stand if action controls visible
-        if (await page.locator('#actionControls').isVisible()) {
-          await page.click('#standButton')
-          await page.waitForTimeout(3000)
-        }
-
-        // Wait for new round controls
-        await expect(page.locator('#newRoundControls')).toBeVisible()
+        // Wait for new round controls with extended timeout
+        await expect(page.locator('#newRoundControls')).toBeVisible({ timeout: 15000 })
         await page.click('#newRoundButton')
         await page.waitForTimeout(500)
       }
 
       // Game should still be functional
-      await expect(page.locator('#bettingControls')).toBeVisible()
+      await expect(page.locator('#bettingControls')).toBeVisible({ timeout: 5000 })
     })
 
     test('hand values are displayed correctly', async ({ page }) => {

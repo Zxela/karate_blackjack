@@ -129,8 +129,38 @@ export class AnimationCoordinator {
      */
     this._showingRules = false
 
+    /**
+     * Loaded card back image for canvas drawing
+     * @private
+     * @type {HTMLImageElement|null}
+     */
+    this._cardBackImage = null
+
     // Check for reduced motion preference
     this._checkReducedMotion()
+
+    // Load card back image for canvas drawing
+    this._loadCardBackImage()
+  }
+
+  /**
+   * Loads the card back SVG image for canvas drawing.
+   * @private
+   */
+  _loadCardBackImage() {
+    // Skip in test environments where Image is not available
+    if (typeof Image === 'undefined') {
+      return
+    }
+
+    const img = new Image()
+    img.onload = () => {
+      this._cardBackImage = img
+    }
+    img.onerror = () => {
+      console.warn('Failed to load card back image, using fallback')
+    }
+    img.src = 'assets/card-back.svg'
   }
 
   // ===========================================================================
@@ -884,6 +914,23 @@ export class AnimationCoordinator {
     ctx.shadowOffsetX = 2
     ctx.shadowOffsetY = 2
 
+    if (!faceUp && this._cardBackImage) {
+      // Use the loaded card back SVG for visual consistency with DOM cards
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.clip()
+      ctx.drawImage(this._cardBackImage, x, y, width, height)
+      ctx.restore()
+
+      // Add border
+      ctx.strokeStyle = '#d4af37'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.stroke()
+      return
+    }
+
     // Card background
     ctx.fillStyle = faceUp ? '#f8f8f8' : '#1a1a2e'
     ctx.beginPath()
@@ -925,7 +972,7 @@ export class AnimationCoordinator {
       ctx.font = '24px Georgia, serif'
       ctx.fillText(symbol, x + width / 2, y + height / 2 + 8)
     } else if (!faceUp) {
-      // Card back design with karate logo
+      // Fallback card back design with karate logo (if image not loaded)
       // Inner red gradient background
       const gradient = ctx.createLinearGradient(x, y, x + width, y + height)
       gradient.addColorStop(0, '#8b1428')
@@ -1001,6 +1048,24 @@ export class AnimationCoordinator {
     const height = CARD_DIMS.HEIGHT
     const radius = 6
 
+    if (!faceUp && this._cardBackImage) {
+      // Use the loaded card back SVG for visual consistency with DOM cards
+      ctx.save()
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.clip()
+      ctx.drawImage(this._cardBackImage, x, y, width, height)
+      ctx.restore()
+
+      // Add border
+      ctx.strokeStyle = '#d4af37'
+      ctx.lineWidth = 1
+      ctx.beginPath()
+      ctx.roundRect(x, y, width, height, radius)
+      ctx.stroke()
+      return
+    }
+
     // Card background
     ctx.fillStyle = faceUp ? '#f8f8f8' : '#1a1a2e'
     ctx.beginPath()
@@ -1039,7 +1104,7 @@ export class AnimationCoordinator {
       ctx.font = '24px Georgia, serif'
       ctx.fillText(symbol, x + width / 2, y + height / 2 + 8)
     } else if (!faceUp) {
-      // Card back design with karate logo
+      // Fallback card back design with karate logo (if image not loaded)
       const gradient = ctx.createLinearGradient(x, y, x + width, y + height)
       gradient.addColorStop(0, '#8b1428')
       gradient.addColorStop(0.5, '#c41e3a')

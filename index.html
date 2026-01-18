@@ -30,6 +30,10 @@
     <header class="game-header">
       <h1 class="game-title">Karate Blackjack</h1>
       <div class="header-controls">
+        <!-- Settings Button -->
+        <button type="button" class="btn-settings" id="settingsButton" aria-label="Settings" title="Settings">
+          <span class="settings-icon" aria-hidden="true"></span>
+        </button>
         <div class="volume-control" id="volumeControl">
           <button type="button" class="btn-volume-toggle" id="volumeToggle" aria-label="Toggle sound">
             <span class="volume-icon" id="volumeIcon" aria-hidden="true"></span>
@@ -37,6 +41,11 @@
           <input type="range" class="volume-slider" id="volumeSlider"
                  min="0" max="100" value="70"
                  aria-label="Volume level">
+        </div>
+        <!-- Session Stats -->
+        <div class="session-stats" id="sessionStats">
+          <span class="stat-item stat-record" id="sessionRecord" title="Wins/Losses">W/L: 0/0</span>
+          <span class="stat-item stat-profit" id="sessionProfit" title="Session profit/loss">+$0</span>
         </div>
         <div class="rank-display" id="rankDisplay">
           <span class="rank-belt" id="rankBelt"></span>
@@ -89,6 +98,7 @@
                 <div class="deck-card deck-card-2"></div>
                 <div class="deck-card deck-card-1"></div>
               </div>
+              <div class="deck-count" id="deckCount" title="Cards remaining">52</div>
             </div>
           </div>
         </section>
@@ -118,6 +128,9 @@
               <div class="card-container" id="playerCards0">
                 <!-- Player cards rendered here -->
               </div>
+              <div class="chip-stack" id="chipStack0" aria-label="Bet chips">
+                <!-- Chip visuals rendered here -->
+              </div>
               <div class="hand-result" id="handResult0"></div>
             </div>
 
@@ -131,6 +144,9 @@
               <div class="card-container" id="playerCards1">
                 <!-- Player cards rendered here -->
               </div>
+              <div class="chip-stack" id="chipStack1" aria-label="Bet chips">
+                <!-- Chip visuals rendered here -->
+              </div>
               <div class="hand-result" id="handResult1"></div>
             </div>
 
@@ -143,6 +159,9 @@
               </div>
               <div class="card-container" id="playerCards2">
                 <!-- Player cards rendered here -->
+              </div>
+              <div class="chip-stack" id="chipStack2" aria-label="Bet chips">
+                <!-- Chip visuals rendered here -->
               </div>
               <div class="hand-result" id="handResult2"></div>
             </div>
@@ -200,9 +219,14 @@
       <div class="control-group insurance-controls hidden" id="insuranceControls">
         <h2 class="control-group-title visually-hidden">Insurance Options</h2>
 
-        <p class="insurance-prompt">Insurance?</p>
-        <button type="button" class="btn btn-insurance btn-yes" id="insuranceYesButton">Yes</button>
-        <button type="button" class="btn btn-insurance btn-no" id="insuranceNoButton">No</button>
+        <div class="insurance-info">
+          <p class="insurance-prompt">Insurance?</p>
+          <p class="insurance-details" id="insuranceDetails">Cost: $50 | Pays 2:1 if dealer has blackjack</p>
+        </div>
+        <div class="insurance-buttons">
+          <button type="button" class="btn btn-insurance btn-yes" id="insuranceYesButton">Yes</button>
+          <button type="button" class="btn btn-insurance btn-no" id="insuranceNoButton">No</button>
+        </div>
       </div>
 
       <!-- New Round Control -->
@@ -216,6 +240,97 @@
 
   <!-- Game State Indicator (for accessibility) -->
   <div class="sr-only" role="status" aria-live="polite" id="gameStatusAnnouncer"></div>
+
+  <!-- Settings Panel -->
+  <div class="settings-panel hidden" id="settingsPanel" role="dialog" aria-labelledby="settingsTitle">
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2 id="settingsTitle">Settings</h2>
+        <button type="button" class="btn-close" id="settingsClose" aria-label="Close settings">&times;</button>
+      </div>
+      <div class="settings-body">
+        <div class="settings-group">
+          <label for="settingsVolume">Sound Volume</label>
+          <input type="range" id="settingsVolume" min="0" max="100" value="70">
+        </div>
+        <div class="settings-group">
+          <label for="animationSpeed">Animation Speed</label>
+          <select id="animationSpeed">
+            <option value="fast">Fast</option>
+            <option value="normal" selected>Normal</option>
+            <option value="slow">Slow</option>
+          </select>
+        </div>
+        <div class="settings-group">
+          <label for="tableColor">Table Color</label>
+          <select id="tableColor">
+            <option value="green" selected>Classic Green</option>
+            <option value="blue">Royal Blue</option>
+            <option value="red">Casino Red</option>
+          </select>
+        </div>
+        <div class="settings-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="showDeckCount" checked>
+            Show Deck Count
+          </label>
+        </div>
+        <div class="settings-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="showTutorial">
+            Show Tutorial on Start
+          </label>
+        </div>
+      </div>
+      <div class="settings-footer">
+        <button type="button" class="btn btn-secondary" id="resetStats">Reset Stats</button>
+        <button type="button" class="btn btn-primary" id="settingsSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial Overlay -->
+  <div class="tutorial-overlay hidden" id="tutorialOverlay" role="dialog" aria-labelledby="tutorialTitle">
+    <div class="tutorial-content">
+      <div class="tutorial-header">
+        <h2 id="tutorialTitle">Welcome to Karate Blackjack!</h2>
+        <button type="button" class="btn-close" id="tutorialClose" aria-label="Close tutorial">&times;</button>
+      </div>
+      <div class="tutorial-body">
+        <div class="tutorial-step" data-step="1">
+          <div class="tutorial-icon">🎰</div>
+          <h3>Place Your Bet</h3>
+          <p>Click chip buttons ($10, $50, $100, $500) to add to your bet. Choose 1-3 hands to play.</p>
+        </div>
+        <div class="tutorial-step" data-step="2">
+          <div class="tutorial-icon">🃏</div>
+          <h3>Know Your Actions</h3>
+          <p><strong>Hit</strong> - Get another card<br>
+             <strong>Stand</strong> - Keep your hand<br>
+             <strong>Double</strong> - Double bet, get one card<br>
+             <strong>Split</strong> - Split pairs into two hands</p>
+        </div>
+        <div class="tutorial-step" data-step="3">
+          <div class="tutorial-icon">🎯</div>
+          <h3>Beat the Dealer</h3>
+          <p>Get closer to 21 than the dealer without going over. Blackjack (Ace + 10) pays 3:2!</p>
+        </div>
+        <div class="tutorial-step" data-step="4">
+          <div class="tutorial-icon">⌨️</div>
+          <h3>Keyboard Shortcuts</h3>
+          <p><strong>H</strong> - Hit | <strong>S</strong> - Stand | <strong>D</strong> - Double | <strong>P</strong> - Split<br>
+             <strong>Space</strong> - Deal/New Round</p>
+        </div>
+      </div>
+      <div class="tutorial-footer">
+        <label class="checkbox-label">
+          <input type="checkbox" id="dontShowAgain">
+          Don't show again
+        </label>
+        <button type="button" class="btn btn-primary" id="tutorialStart">Start Playing!</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Main Application Script -->
   <script type="module" src="js/main.js"></script>

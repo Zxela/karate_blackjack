@@ -323,7 +323,8 @@ export class GameEngine {
       insuranceTaken: this._insuranceTaken,
       insuranceBet: this._insuranceBet,
       minBet: this._minBet,
-      maxBet: this._maxBet
+      maxBet: this._maxBet,
+      deckCount: this._deck.getCount()
     }
   }
 
