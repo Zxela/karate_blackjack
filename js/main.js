@@ -134,7 +134,7 @@ function updateUI() {
   elements.currentBetAmount().textContent = `$${currentBet}`
 
   // Update dealer
-  const dealerCards = state.dealer.cards
+  const dealerCards = state.dealerHand.cards
   const hideDealerCard = state.phase === GAME_PHASES.PLAYER_TURN && dealerCards.length > 0
   renderCards(elements.dealerHand(), dealerCards, hideDealerCard)
 
@@ -150,13 +150,14 @@ function updateUI() {
       : 0
     elements.dealerValue().textContent = visibleValue > 0 ? `${visibleValue}` : '--'
   } else {
-    elements.dealerValue().textContent = state.dealer.value > 0 ? `${state.dealer.value}` : '--'
+    elements.dealerValue().textContent =
+      state.dealerHand.value > 0 ? `${state.dealerHand.value}` : '--'
   }
 
   // Update player hands
   for (let i = 0; i < 3; i++) {
     const handEl = elements.playerHand(i)
-    const hand = state.hands[i]
+    const hand = state.playerHands[i]
 
     if (i < handCount && hand) {
       handEl.classList.remove('hidden')
@@ -241,13 +242,16 @@ function updateBettingControls() {
  */
 function updateActionButtons() {
   const state = game.getState()
-  const hand = state.hands[activeHandIndex]
+  const hand = state.playerHands[activeHandIndex]
 
   if (!hand) return
 
+  // Can double if balance >= bet and only 2 cards
+  const canDouble = state.balance >= (state.bets[activeHandIndex] || 0) && hand.cards.length === 2
+
   elements.hitButton().disabled = false
   elements.standButton().disabled = false
-  elements.doubleButton().disabled = !state.canDouble || hand.cards.length !== 2
+  elements.doubleButton().disabled = !canDouble
   elements.splitButton().disabled = !hand.canSplit
 }
 
@@ -259,28 +263,28 @@ function displayResults(state) {
   const messageEl = elements.messageText()
   const results = []
 
-  for (let i = 0; i < state.hands.length; i++) {
-    const hand = state.hands[i]
+  for (let i = 0; i < state.playerHands.length; i++) {
+    const hand = state.playerHands[i]
     if (!hand || hand.cards.length === 0) continue
 
     let outcome = ''
     if (hand.isBust) {
       outcome = 'Bust'
-    } else if (state.dealer.isBust) {
+    } else if (state.dealerHand.isBust) {
       outcome = 'Win (Dealer Bust)'
-    } else if (hand.isBlackjack && !state.dealer.isBlackjack) {
+    } else if (hand.isBlackjack && !state.dealerHand.isBlackjack) {
       outcome = 'Blackjack!'
-    } else if (state.dealer.isBlackjack && !hand.isBlackjack) {
+    } else if (state.dealerHand.isBlackjack && !hand.isBlackjack) {
       outcome = 'Lose (Dealer BJ)'
-    } else if (hand.value > state.dealer.value) {
+    } else if (hand.value > state.dealerHand.value) {
       outcome = 'Win'
-    } else if (hand.value < state.dealer.value) {
+    } else if (hand.value < state.dealerHand.value) {
       outcome = 'Lose'
     } else {
       outcome = 'Push'
     }
 
-    if (state.hands.length > 1) {
+    if (state.playerHands.length > 1) {
       results.push(`Hand ${i + 1}: ${outcome}`)
     } else {
       results.push(outcome)
@@ -351,8 +355,8 @@ function deal() {
  */
 function findActiveHand() {
   const state = game.getState()
-  for (let i = activeHandIndex; i < state.hands.length; i++) {
-    const hand = state.hands[i]
+  for (let i = activeHandIndex; i < state.playerHands.length; i++) {
+    const hand = state.playerHands[i]
     if (hand && !hand.isStanding && !hand.isBust && !hand.isBlackjack) {
       activeHandIndex = i
       return true
@@ -368,10 +372,10 @@ function hit() {
   game.hit(activeHandIndex)
 
   const state = game.getState()
-  const hand = state.hands[activeHandIndex]
+  const hand = state.playerHands[activeHandIndex]
 
   // If hand busted or standing, move to next hand
-  if (hand.isBust || hand.isStanding) {
+  if (hand && (hand.isBust || hand.isStanding)) {
     activeHandIndex++
     if (!findActiveHand()) {
       // All hands done, dealer's turn happens automatically via state machine
