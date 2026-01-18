@@ -539,8 +539,8 @@ function updateUI() {
       )
 
       renderCards(elements.playerCards(i), hand.cards)
-      // Show soft indicator for player hands
-      elements.playerValue(i).textContent = formatHandValue(hand)
+      // Show soft indicator for player hands (hide during dealing animation)
+      elements.playerValue(i).textContent = isDealingAnimation ? '--' : formatHandValue(hand)
       elements.playerBet(i).textContent = hand.bet > 0 ? `$${hand.bet}` : ''
 
       // Render chip stack for this hand
@@ -979,6 +979,9 @@ async function completeRoundIfNeeded() {
       // Play appropriate sounds for each result as they animate
       await animateResultsWithSound(results)
     }
+
+    // Update UI to show new balance after chip animations
+    updateUI()
   }
 }
 
