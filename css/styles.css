@@ -816,6 +816,51 @@ ol {
 }
 
 /* =============================================================================
+   PLAYING CARDS
+   ============================================================================= */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: var(--card-width);
+  height: var(--card-height);
+  background: var(--color-card-face);
+  border: 2px solid #333;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  font-family: "Georgia", serif;
+  position: relative;
+  margin-left: calc(var(--card-overlap) * -0.5);
+}
+
+.card:first-child {
+  margin-left: 0;
+}
+
+.card-rank {
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-weight: bold;
+  line-height: 1;
+}
+
+.card-suit {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  line-height: 1;
+}
+
+.card.face-down {
+  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-secondary));
+  border-color: var(--color-accent-dark);
+}
+
+.card-back {
+  font-size: clamp(2rem, 6vw, 3rem);
+  color: var(--color-accent);
+}
+
+/* =============================================================================
    ANIMATIONS
    ============================================================================= */
 

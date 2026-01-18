@@ -2,285 +2,515 @@
  * @fileoverview Main entry point for Karate Blackjack game.
  *
  * This module initializes the game application by:
- * 1. Setting up the canvas rendering context
- * 2. Initializing game state
- * 3. Setting up event listeners for user interactions
+ * 1. Setting up the GameEngine
+ * 2. Connecting UI elements to game actions
+ * 3. Updating the display based on game state
  *
  * @module main
  * @version 1.0.0
  */
 
-// Import core types and utilities
-import { DEFAULTS, GAME_PHASES, createInitialGameState } from './types/index.js'
+import { GameEngine } from './game/GameEngine.js'
+import { GAME_PHASES } from './types/index.js'
 
 // =============================================================================
-// DOM ELEMENT REFERENCES
+// GAME ENGINE INSTANCE
+// =============================================================================
+
+/** @type {GameEngine} */
+let game = null
+
+/** @type {number} */
+let currentBet = 0
+
+/** @type {number} */
+let handCount = 1
+
+/** @type {number} */
+let activeHandIndex = 0
+
+// =============================================================================
+// DOM REFERENCES
+// =============================================================================
+
+const elements = {
+  // Balance
+  balanceAmount: () => document.getElementById('balanceAmount'),
+
+  // Message
+  messageText: () => document.getElementById('messageText'),
+
+  // Betting
+  currentBetAmount: () => document.getElementById('currentBetAmount'),
+  dealButton: () => document.getElementById('dealButton'),
+  clearBetButton: () => document.getElementById('clearBetButton'),
+  bettingControls: () => document.getElementById('bettingControls'),
+
+  // Actions
+  actionControls: () => document.getElementById('actionControls'),
+  hitButton: () => document.getElementById('hitButton'),
+  standButton: () => document.getElementById('standButton'),
+  doubleButton: () => document.getElementById('doubleButton'),
+  splitButton: () => document.getElementById('splitButton'),
+
+  // Insurance
+  insuranceControls: () => document.getElementById('insuranceControls'),
+
+  // New Round
+  newRoundControls: () => document.getElementById('newRoundControls'),
+  newRoundButton: () => document.getElementById('newRoundButton'),
+
+  // Dealer
+  dealerHand: () => document.getElementById('dealerHand'),
+  dealerValue: () => document.getElementById('dealerValue'),
+
+  // Player hands
+  playerHands: () => document.getElementById('playerHands'),
+  playerHand: (i) => document.getElementById(`playerHand${i}`),
+  playerCards: (i) => document.getElementById(`playerCards${i}`),
+  playerValue: (i) => document.getElementById(`playerValue${i}`),
+  playerBet: (i) => document.getElementById(`playerBet${i}`)
+}
+
+// =============================================================================
+// CARD RENDERING
 // =============================================================================
 
 /**
- * Canvas element for card rendering.
- * @type {HTMLCanvasElement | null}
+ * Creates an HTML element for a card.
+ * @param {import('./types/index.js').Card} card
+ * @param {boolean} faceDown
+ * @returns {HTMLElement}
  */
-let gameCanvas = null
+function createCardElement(card, faceDown = false) {
+  const cardEl = document.createElement('div')
+  cardEl.className = `card ${faceDown ? 'face-down' : ''}`
 
-/**
- * Canvas 2D rendering context.
- * @type {CanvasRenderingContext2D | null}
- */
-let canvasContext = null
+  if (faceDown) {
+    cardEl.innerHTML = '<span class="card-back">🂠</span>'
+  } else {
+    const suitSymbols = { hearts: '♥', diamonds: '♦', clubs: '♣', spades: '♠' }
+    const suitColors = { hearts: 'red', diamonds: 'red', clubs: 'black', spades: 'black' }
+    const symbol = suitSymbols[card.suit]
+    const color = suitColors[card.suit]
 
-/**
- * Current game state.
- * @type {import('./types/index.js').GameState | null}
- */
-let gameState = null
-
-// =============================================================================
-// INITIALIZATION
-// =============================================================================
-
-/**
- * Initializes the canvas element and its 2D rendering context.
- *
- * @returns {boolean} True if canvas was initialized successfully
- */
-function initializeCanvas() {
-  gameCanvas = document.getElementById('gameCanvas')
-
-  if (!(gameCanvas instanceof HTMLCanvasElement)) {
-    console.error('Canvas element not found or not a valid canvas')
-    return false
+    cardEl.innerHTML = `
+      <span class="card-rank" style="color: ${color}">${card.rank}</span>
+      <span class="card-suit" style="color: ${color}">${symbol}</span>
+    `
   }
 
-  const context = gameCanvas.getContext('2d')
-
-  if (!context) {
-    console.error('Failed to get 2D canvas context')
-    return false
-  }
-
-  canvasContext = context
-
-  // Set canvas size to match CSS dimensions
-  resizeCanvas()
-
-  console.log('Canvas initialized successfully')
-  return true
+  return cardEl
 }
 
 /**
- * Resizes the canvas to match its display size.
- * Called on initialization and window resize.
+ * Renders cards in a container.
+ * @param {HTMLElement} container
+ * @param {import('./types/index.js').Card[]} cards
+ * @param {boolean} hideFirst - Hide the first card (for dealer)
  */
-function resizeCanvas() {
-  if (!gameCanvas) return
-
-  // Get the computed display size
-  const rect = gameCanvas.getBoundingClientRect()
-
-  // Set the canvas internal size to match display size (for crisp rendering)
-  // Use devicePixelRatio for high-DPI displays
-  const dpr = window.devicePixelRatio || 1
-  gameCanvas.width = rect.width * dpr
-  gameCanvas.height = rect.height * dpr
-
-  // Scale the context to account for the pixel ratio
-  if (canvasContext) {
-    canvasContext.scale(dpr, dpr)
-  }
-}
-
-/**
- * Initializes the game state with default values.
- *
- * @returns {import('./types/index.js').GameState} The initialized game state
- */
-function initializeGameState() {
-  gameState = createInitialGameState({
-    initialBalance: DEFAULTS.INITIAL_BALANCE,
-    minBet: DEFAULTS.MIN_BET,
-    maxBet: DEFAULTS.MAX_BET
+function renderCards(container, cards, hideFirst = false) {
+  container.innerHTML = ''
+  cards.forEach((card, index) => {
+    const faceDown = hideFirst && index === 0
+    container.appendChild(createCardElement(card, faceDown))
   })
-
-  console.log('Game state initialized:', {
-    phase: gameState.phase,
-    balance: gameState.balance
-  })
-
-  return gameState
 }
 
+// =============================================================================
+// UI UPDATE
+// =============================================================================
+
 /**
- * Updates the UI to reflect the current game state.
- * Placeholder for future UIController integration.
+ * Updates the entire UI based on game state.
  */
 function updateUI() {
-  if (!gameState) return
+  const state = game.getState()
 
-  // Update balance display
-  const balanceAmount = document.getElementById('balanceAmount')
-  if (balanceAmount) {
-    balanceAmount.textContent = `$${gameState.balance}`
+  // Update balance
+  elements.balanceAmount().textContent = `$${state.balance}`
+
+  // Update current bet display
+  elements.currentBetAmount().textContent = `$${currentBet}`
+
+  // Update dealer
+  const dealerCards = state.dealer.cards
+  const hideDealerCard = state.phase === GAME_PHASES.PLAYER_TURN && dealerCards.length > 0
+  renderCards(elements.dealerHand(), dealerCards, hideDealerCard)
+
+  if (hideDealerCard && dealerCards.length > 0) {
+    // Show only second card value
+    const visibleCard = dealerCards[1]
+    const visibleValue = visibleCard
+      ? visibleCard.rank === 'A'
+        ? 11
+        : ['J', 'Q', 'K'].includes(visibleCard.rank)
+          ? 10
+          : Number.parseInt(visibleCard.rank)
+      : 0
+    elements.dealerValue().textContent = visibleValue > 0 ? `${visibleValue}` : '--'
+  } else {
+    elements.dealerValue().textContent = state.dealer.value > 0 ? `${state.dealer.value}` : '--'
   }
 
-  // Update message based on phase
-  const messageText = document.getElementById('messageText')
-  if (messageText) {
-    switch (gameState.phase) {
-      case GAME_PHASES.BETTING:
-        messageText.textContent = 'Place your bet to begin'
-        break
-      case GAME_PHASES.DEALING:
-        messageText.textContent = 'Dealing cards...'
-        break
-      case GAME_PHASES.PLAYER_TURN:
-        messageText.textContent = 'Your turn'
-        break
-      case GAME_PHASES.DEALER_TURN:
-        messageText.textContent = "Dealer's turn"
-        break
-      case GAME_PHASES.RESOLUTION:
-        messageText.textContent = 'Round complete'
-        break
-      default:
-        messageText.textContent = 'Welcome to Karate Blackjack!'
+  // Update player hands
+  for (let i = 0; i < 3; i++) {
+    const handEl = elements.playerHand(i)
+    const hand = state.hands[i]
+
+    if (i < handCount && hand) {
+      handEl.classList.remove('hidden')
+      handEl.classList.toggle(
+        'active',
+        i === activeHandIndex && state.phase === GAME_PHASES.PLAYER_TURN
+      )
+
+      renderCards(elements.playerCards(i), hand.cards)
+      elements.playerValue(i).textContent = hand.value > 0 ? `${hand.value}` : '--'
+      elements.playerBet(i).textContent = hand.bet > 0 ? `$${hand.bet}` : ''
+    } else {
+      handEl.classList.add('hidden')
     }
   }
+
+  // Update message and controls based on phase
+  updatePhaseUI(state)
+}
+
+/**
+ * Updates UI elements based on game phase.
+ * @param {import('./types/index.js').GameState} state
+ */
+function updatePhaseUI(state) {
+  const messageEl = elements.messageText()
+
+  // Hide all control groups first
+  elements.bettingControls().classList.add('hidden')
+  elements.actionControls().classList.add('hidden')
+  elements.insuranceControls().classList.add('hidden')
+  elements.newRoundControls().classList.add('hidden')
+
+  switch (state.phase) {
+    case GAME_PHASES.BETTING:
+      elements.bettingControls().classList.remove('hidden')
+      messageEl.textContent = 'Place your bet to begin'
+      updateBettingControls()
+      break
+
+    case GAME_PHASES.DEALING:
+      messageEl.textContent = 'Dealing cards...'
+      break
+
+    case GAME_PHASES.PLAYER_TURN:
+      elements.actionControls().classList.remove('hidden')
+      messageEl.textContent =
+        handCount > 1 ? `Hand ${activeHandIndex + 1} - Your turn` : 'Your turn'
+      updateActionButtons()
+      break
+
+    case GAME_PHASES.INSURANCE_OFFERED:
+      elements.insuranceControls().classList.remove('hidden')
+      messageEl.textContent = 'Dealer shows Ace - Insurance?'
+      break
+
+    case GAME_PHASES.DEALER_TURN:
+      messageEl.textContent = "Dealer's turn"
+      break
+
+    case GAME_PHASES.RESOLUTION:
+      elements.newRoundControls().classList.remove('hidden')
+      displayResults(state)
+      break
+
+    default:
+      messageEl.textContent = 'Welcome to Karate Blackjack!'
+  }
+}
+
+/**
+ * Updates betting control states.
+ */
+function updateBettingControls() {
+  const dealBtn = elements.dealButton()
+  const canDeal = currentBet > 0
+  dealBtn.disabled = !canDeal
+}
+
+/**
+ * Updates action button states based on current hand.
+ */
+function updateActionButtons() {
+  const state = game.getState()
+  const hand = state.hands[activeHandIndex]
+
+  if (!hand) return
+
+  elements.hitButton().disabled = false
+  elements.standButton().disabled = false
+  elements.doubleButton().disabled = !state.canDouble || hand.cards.length !== 2
+  elements.splitButton().disabled = !hand.canSplit
+}
+
+/**
+ * Displays round results.
+ * @param {import('./types/index.js').GameState} state
+ */
+function displayResults(state) {
+  const messageEl = elements.messageText()
+  const results = []
+
+  for (let i = 0; i < state.hands.length; i++) {
+    const hand = state.hands[i]
+    if (!hand || hand.cards.length === 0) continue
+
+    let outcome = ''
+    if (hand.isBust) {
+      outcome = 'Bust'
+    } else if (state.dealer.isBust) {
+      outcome = 'Win (Dealer Bust)'
+    } else if (hand.isBlackjack && !state.dealer.isBlackjack) {
+      outcome = 'Blackjack!'
+    } else if (state.dealer.isBlackjack && !hand.isBlackjack) {
+      outcome = 'Lose (Dealer BJ)'
+    } else if (hand.value > state.dealer.value) {
+      outcome = 'Win'
+    } else if (hand.value < state.dealer.value) {
+      outcome = 'Lose'
+    } else {
+      outcome = 'Push'
+    }
+
+    if (state.hands.length > 1) {
+      results.push(`Hand ${i + 1}: ${outcome}`)
+    } else {
+      results.push(outcome)
+    }
+  }
+
+  messageEl.textContent = results.join(' | ')
+}
+
+// =============================================================================
+// GAME ACTIONS
+// =============================================================================
+
+/**
+ * Adds to the current bet.
+ * @param {number} amount
+ */
+function addBet(amount) {
+  const state = game.getState()
+  if (state.phase !== GAME_PHASES.BETTING) return
+
+  const maxBet = Math.min(state.balance, 1000)
+  currentBet = Math.min(currentBet + amount, maxBet)
+  updateUI()
+}
+
+/**
+ * Clears the current bet.
+ */
+function clearBet() {
+  currentBet = 0
+  updateUI()
+}
+
+/**
+ * Deals cards and starts the round.
+ */
+function deal() {
+  if (currentBet === 0) return
+
+  const state = game.getState()
+  if (state.phase !== GAME_PHASES.BETTING) return
+
+  // Start new round
+  game.startNewRound()
+
+  // Place bets for each hand
+  for (let i = 0; i < handCount; i++) {
+    game.placeBet(i, currentBet)
+  }
+
+  // Deal cards
+  game.deal()
+
+  activeHandIndex = 0
+
+  // Check for insurance or auto-proceed
+  const newState = game.getState()
+  if (newState.phase === GAME_PHASES.PLAYER_TURN) {
+    findActiveHand()
+  }
+
+  updateUI()
+}
+
+/**
+ * Finds the next active (non-standing, non-bust) hand.
+ */
+function findActiveHand() {
+  const state = game.getState()
+  for (let i = activeHandIndex; i < state.hands.length; i++) {
+    const hand = state.hands[i]
+    if (hand && !hand.isStanding && !hand.isBust && !hand.isBlackjack) {
+      activeHandIndex = i
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Player hits on the active hand.
+ */
+function hit() {
+  game.hit(activeHandIndex)
+
+  const state = game.getState()
+  const hand = state.hands[activeHandIndex]
+
+  // If hand busted or standing, move to next hand
+  if (hand.isBust || hand.isStanding) {
+    activeHandIndex++
+    if (!findActiveHand()) {
+      // All hands done, dealer's turn happens automatically via state machine
+    }
+  }
+
+  updateUI()
+}
+
+/**
+ * Player stands on the active hand.
+ */
+function stand() {
+  game.stand(activeHandIndex)
+
+  activeHandIndex++
+  if (!findActiveHand()) {
+    // All hands done
+  }
+
+  updateUI()
+}
+
+/**
+ * Player doubles down on the active hand.
+ */
+function doubleDown() {
+  game.doubleDown(activeHandIndex)
+
+  activeHandIndex++
+  if (!findActiveHand()) {
+    // All hands done
+  }
+
+  updateUI()
+}
+
+/**
+ * Player splits the active hand.
+ */
+function splitHand() {
+  game.split(activeHandIndex)
+  updateUI()
+}
+
+/**
+ * Player takes insurance.
+ */
+function takeInsurance() {
+  game.takeInsurance()
+  activeHandIndex = 0
+  findActiveHand()
+  updateUI()
+}
+
+/**
+ * Player declines insurance.
+ */
+function declineInsurance() {
+  game.declineInsurance()
+  activeHandIndex = 0
+  findActiveHand()
+  updateUI()
+}
+
+/**
+ * Starts a new round.
+ */
+function newRound() {
+  currentBet = 0
+  activeHandIndex = 0
+  game.startNewRound()
+  updateUI()
 }
 
 // =============================================================================
 // EVENT LISTENERS
 // =============================================================================
 
-/**
- * Sets up all event listeners for user interactions.
- * Placeholder handlers will be replaced with actual game logic.
- */
 function setupEventListeners() {
-  // Window resize handler for canvas
-  window.addEventListener('resize', () => {
-    resizeCanvas()
-    console.log('Canvas resized')
-  })
-
   // Bet buttons
-  const betButtons = document.querySelectorAll('.btn-bet')
-  for (const button of betButtons) {
-    button.addEventListener('click', (event) => {
-      const target = event.currentTarget
-      if (target instanceof HTMLButtonElement) {
-        const betAmount = target.dataset.bet
-        console.log(`Bet button clicked: $${betAmount}`)
-        // TODO: Implement bet placement logic
-      }
+  for (const button of document.querySelectorAll('.btn-bet')) {
+    button.addEventListener('click', (e) => {
+      const amount = Number.parseInt(e.currentTarget.dataset.bet)
+      addBet(amount)
     })
   }
 
-  // Hand count selector buttons
-  const handCountButtons = document.querySelectorAll('.btn-hand-count')
-  for (const button of handCountButtons) {
-    button.addEventListener('click', (event) => {
-      const target = event.currentTarget
-      if (target instanceof HTMLButtonElement) {
-        // Update active state
-        for (const btn of handCountButtons) {
-          btn.classList.remove('active')
-          btn.setAttribute('aria-pressed', 'false')
-        }
-        target.classList.add('active')
-        target.setAttribute('aria-pressed', 'true')
-
-        const handCount = target.dataset.hands
-        console.log(`Hand count selected: ${handCount}`)
-        // TODO: Implement hand count logic
+  // Hand count buttons
+  for (const button of document.querySelectorAll('.btn-hand-count')) {
+    button.addEventListener('click', (e) => {
+      for (const b of document.querySelectorAll('.btn-hand-count')) {
+        b.classList.remove('active')
+        b.setAttribute('aria-pressed', 'false')
       }
+      e.currentTarget.classList.add('active')
+      e.currentTarget.setAttribute('aria-pressed', 'true')
+      handCount = Number.parseInt(e.currentTarget.dataset.hands)
+      updateUI()
     })
   }
 
   // Deal button
-  const dealButton = document.getElementById('dealButton')
-  if (dealButton) {
-    dealButton.addEventListener('click', () => {
-      console.log('Deal button clicked')
-      // TODO: Implement deal logic
-    })
-  }
+  elements.dealButton().addEventListener('click', deal)
 
   // Clear bet button
-  const clearBetButton = document.getElementById('clearBetButton')
-  if (clearBetButton) {
-    clearBetButton.addEventListener('click', () => {
-      console.log('Clear bet clicked')
-      // TODO: Implement clear bet logic
-    })
-  }
+  elements.clearBetButton().addEventListener('click', clearBet)
 
   // Action buttons
-  const actionButtons = {
-    hit: document.getElementById('hitButton'),
-    stand: document.getElementById('standButton'),
-    double: document.getElementById('doubleButton'),
-    split: document.getElementById('splitButton')
-  }
-
-  for (const [action, button] of Object.entries(actionButtons)) {
-    if (button) {
-      button.addEventListener('click', () => {
-        console.log(`Action clicked: ${action}`)
-        // TODO: Implement action logic
-      })
-    }
-  }
+  elements.hitButton().addEventListener('click', hit)
+  elements.standButton().addEventListener('click', stand)
+  elements.doubleButton().addEventListener('click', doubleDown)
+  elements.splitButton().addEventListener('click', splitHand)
 
   // Insurance buttons
-  const insuranceYes = document.getElementById('insuranceYesButton')
-  const insuranceNo = document.getElementById('insuranceNoButton')
-
-  if (insuranceYes) {
-    insuranceYes.addEventListener('click', () => {
-      console.log('Insurance accepted')
-      // TODO: Implement insurance logic
-    })
-  }
-
-  if (insuranceNo) {
-    insuranceNo.addEventListener('click', () => {
-      console.log('Insurance declined')
-      // TODO: Implement insurance logic
-    })
-  }
+  document.getElementById('insuranceYesButton').addEventListener('click', takeInsurance)
+  document.getElementById('insuranceNoButton').addEventListener('click', declineInsurance)
 
   // New round button
-  const newRoundButton = document.getElementById('newRoundButton')
-  if (newRoundButton) {
-    newRoundButton.addEventListener('click', () => {
-      console.log('New round clicked')
-      // TODO: Implement new round logic
-    })
-  }
-
-  console.log('Event listeners set up successfully')
+  elements.newRoundButton().addEventListener('click', newRound)
 }
 
 // =============================================================================
-// MAIN APPLICATION ENTRY POINT
+// INITIALIZATION
 // =============================================================================
 
-/**
- * Main initialization function called when the DOM is ready.
- * Sets up all game components and prepares the game for play.
- */
 function initializeGame() {
   console.log('=== Karate Blackjack Initializing ===')
 
-  // Initialize canvas
-  const canvasReady = initializeCanvas()
-  if (!canvasReady) {
-    console.warn('Canvas initialization failed, game will run without canvas rendering')
-  }
+  // Create game engine
+  game = new GameEngine({
+    initialBalance: 1000,
+    deckCount: 6,
+    minBet: 10,
+    maxBet: 1000
+  })
 
-  // Initialize game state
-  initializeGameState()
+  // Start in betting phase
+  game.startNewRound()
 
   // Set up event listeners
   setupEventListeners()
@@ -288,28 +518,12 @@ function initializeGame() {
   // Initial UI update
   updateUI()
 
-  console.log('=== Game Initialized Successfully ===')
-  console.log('Ready for game engine integration')
+  console.log('=== Game Ready ===')
 }
 
-// Wait for DOM to be fully loaded before initializing
+// Wait for DOM
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeGame)
 } else {
-  // DOM already loaded
   initializeGame()
-}
-
-// =============================================================================
-// EXPORTS (for testing and external access)
-// =============================================================================
-
-export {
-  gameState,
-  gameCanvas,
-  canvasContext,
-  initializeCanvas,
-  initializeGameState,
-  updateUI,
-  setupEventListeners
 }
