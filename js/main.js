@@ -650,21 +650,41 @@ async function completeRoundIfNeeded() {
       // Update UI to show revealed hole card
       updateUI()
 
+      // Show dealer's hand value after reveal
+      const revealedState = game.getState()
+      const dealerValue = revealedState.dealerHand.value
+      elements.messageText().textContent = `Dealer has ${dealerValue}`
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
       // Play dealer turn (this may add cards)
       game.playDealerTurn()
 
       // Get state after dealer plays
       const afterDealerState = game.getState()
+      const newCardsDealt = afterDealerState.dealerHand.cards.length - initialDealerCards
 
       // Animate any new dealer cards
-      if (animationCoordinator) {
+      if (animationCoordinator && newCardsDealt > 0) {
         for (let i = initialDealerCards; i < afterDealerState.dealerHand.cards.length; i++) {
           await animationCoordinator.animateDealerHit(
             afterDealerState.dealerHand.cards[i],
             i,
             updateUI
           )
+          // Show updated dealer value
+          const currentState = game.getState()
+          elements.messageText().textContent = `Dealer has ${currentState.dealerHand.value}`
         }
+      } else if (dealerValue >= 17) {
+        // Dealer stands - show message
+        elements.messageText().textContent = `Dealer stands on ${dealerValue}`
+        await new Promise((resolve) => setTimeout(resolve, 800))
+      }
+
+      // Show final dealer result
+      if (afterDealerState.dealerHand.isBust) {
+        elements.messageText().textContent = 'Dealer busts!'
+        await new Promise((resolve) => setTimeout(resolve, 500))
       }
     } else {
       // All busted - just play dealer turn without animation
