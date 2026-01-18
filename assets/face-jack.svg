@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 100">
+  <!-- Young Karate Student/Apprentice - The Jack -->
+  <defs>
+    <linearGradient id="jackGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4d03f"/>
+      <stop offset="100%" style="stop-color:#d4af37"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Figure -->
+  <g transform="translate(35, 50)">
+    <!-- Head -->
+    <circle cx="0" cy="-25" r="10" fill="#e8d5c4"/>
+
+    <!-- Spiky hair (youthful) -->
+    <path d="M-8,-30 L-10,-40 L-5,-33 L-3,-42 L0,-35 L3,-42 L5,-33 L10,-40 L8,-30 Z" fill="#2a1a0a"/>
+    <path d="M-6,-30 Q0,-28 6,-30" fill="#2a1a0a"/>
+
+    <!-- Headband (hachimaki) -->
+    <rect x="-10" y="-32" width="20" height="4" rx="1" fill="#fff"/>
+    <circle cx="0" cy="-30" r="3" fill="#c41e3a"/>
+    <!-- Headband tails -->
+    <path d="M10,-30 Q15,-28 18,-35" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M10,-31 Q14,-30 16,-38" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+    <!-- Determined eyebrows -->
+    <path d="M-6,-27 L-2,-26" stroke="#2a1a0a" stroke-width="1.5" fill="none"/>
+    <path d="M2,-26 L6,-27" stroke="#2a1a0a" stroke-width="1.5" fill="none"/>
+
+    <!-- Eyes (eager/determined) -->
+    <ellipse cx="-4" cy="-24" rx="2.5" ry="2" fill="#333"/>
+    <ellipse cx="4" cy="-24" rx="2.5" ry="2" fill="#333"/>
+    <circle cx="-4" cy="-24.5" r="1" fill="#fff"/>
+    <circle cx="4" cy="-24.5" r="1" fill="#fff"/>
+
+    <!-- Confident smile -->
+    <path d="M-4,-18 Q0,-15 4,-18" stroke="#b08070" stroke-width="1.5" fill="none"/>
+
+    <!-- Body - gi in fighting stance -->
+    <path d="M-10,-15 L-15,25 L-5,28 L0,26 L5,28 L15,25 L10,-15 Z" fill="#f5f5f5"/>
+
+    <!-- Gi lapel -->
+    <path d="M0,-15 L-6,5 L0,10 L6,5 Z" fill="#e8e8e8"/>
+
+    <!-- White belt (beginner) with stripe -->
+    <rect x="-14" y="8" width="28" height="5" rx="1" fill="#f5f5f5" stroke="#ddd"/>
+    <rect x="8" y="9" width="4" height="3" fill="#ffd700"/>
+
+    <!-- Arms in ready punch position -->
+    <path d="M-10,-8 L-20,5 L-18,10 L-8,0 Z" fill="#f5f5f5"/>
+    <path d="M10,-8 L22,-10 L24,-5 L12,-2 Z" fill="#f5f5f5"/>
+
+    <!-- Fists -->
+    <g fill="#e8d5c4">
+      <!-- Back fist -->
+      <ellipse cx="-18" cy="8" rx="4" ry="4"/>
+      <!-- Forward punch -->
+      <ellipse cx="24" cy="-8" rx="5" ry="4"/>
+    </g>
+
+    <!-- Action lines for punch -->
+    <g stroke="url(#jackGold)" stroke-width="1" opacity="0.6">
+      <line x1="18" y1="-6" x2="14" y2="-4"/>
+      <line x1="18" y1="-9" x2="14" y2="-9"/>
+      <line x1="18" y1="-12" x2="14" y2="-14"/>
+    </g>
+  </g>
+
+  <!-- J letters in corners -->
+  <text x="5" y="15" font-family="serif" font-size="14" font-weight="bold" fill="currentColor">J</text>
+  <text x="65" y="95" font-family="serif" font-size="14" font-weight="bold" fill="currentColor" transform="rotate(180, 65, 90)">J</text>
+</svg>

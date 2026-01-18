@@ -1282,6 +1282,67 @@ ol {
   line-height: 1;
 }
 
+/* =============================================================================
+   FACE CARDS (J, Q, K)
+   ============================================================================= */
+
+.card.face-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px;
+}
+
+.card.face-card .card-rank-top,
+.card.face-card .card-suit-top {
+  position: absolute;
+  font-size: clamp(0.7rem, 2vw, 0.9rem);
+}
+
+.card.face-card .card-rank-top {
+  top: 3px;
+  left: 5px;
+  font-weight: bold;
+}
+
+.card.face-card .card-suit-top {
+  top: 15px;
+  left: 5px;
+}
+
+.card.face-card .card-rank-bottom,
+.card.face-card .card-suit-bottom {
+  position: absolute;
+  font-size: clamp(0.7rem, 2vw, 0.9rem);
+  transform: rotate(180deg);
+}
+
+.card.face-card .card-rank-bottom {
+  bottom: 3px;
+  right: 5px;
+  font-weight: bold;
+}
+
+.card.face-card .card-suit-bottom {
+  bottom: 15px;
+  right: 5px;
+}
+
+.face-card-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  height: 75%;
+  object-fit: contain;
+}
+
+/* Apply suit color to SVG via CSS filter */
+.card.face-card .face-card-image[style*="color: red"] {
+  filter: hue-rotate(-10deg) saturate(1.5);
+}
+
 .card.face-down {
   background: var(--color-card-back);
   border-color: var(--color-accent-dark);

@@ -204,6 +204,16 @@ function createImpactStar(x, y) {
  * @param {boolean} faceDown
  * @returns {HTMLElement}
  */
+/**
+ * Face card image mappings.
+ * @type {Object<string, string>}
+ */
+const FACE_CARD_IMAGES = {
+  K: 'assets/face-king.svg',
+  Q: 'assets/face-queen.svg',
+  J: 'assets/face-jack.svg'
+}
+
 function createCardElement(card, faceDown = false) {
   const cardEl = document.createElement('div')
   cardEl.className = `card ${faceDown ? 'face-down' : ''}`
@@ -221,10 +231,25 @@ function createCardElement(card, faceDown = false) {
     const symbol = suitSymbols[card.suit]
     const color = suitColors[card.suit]
 
-    cardEl.innerHTML = `
-      <span class="card-rank" style="color: ${color}">${card.rank}</span>
-      <span class="card-suit" style="color: ${color}">${symbol}</span>
-    `
+    // Check if this is a face card
+    const faceCardImage = FACE_CARD_IMAGES[card.rank]
+
+    if (faceCardImage) {
+      // Render face card with karate character image
+      cardEl.classList.add('face-card')
+      cardEl.innerHTML = `
+        <span class="card-rank card-rank-top" style="color: ${color}">${card.rank}</span>
+        <span class="card-suit card-suit-top" style="color: ${color}">${symbol}</span>
+        <img class="face-card-image" src="${faceCardImage}" alt="${card.rank}" style="color: ${color}">
+        <span class="card-suit card-suit-bottom" style="color: ${color}">${symbol}</span>
+        <span class="card-rank card-rank-bottom" style="color: ${color}">${card.rank}</span>
+      `
+    } else {
+      cardEl.innerHTML = `
+        <span class="card-rank" style="color: ${color}">${card.rank}</span>
+        <span class="card-suit" style="color: ${color}">${symbol}</span>
+      `
+    }
   }
 
   return cardEl

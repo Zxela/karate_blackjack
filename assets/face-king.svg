@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 100">
+  <!-- Karate Master/Grandmaster - The King -->
+  <defs>
+    <linearGradient id="kingGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f4d03f"/>
+      <stop offset="100%" style="stop-color:#d4af37"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Figure -->
+  <g transform="translate(35, 50)">
+    <!-- Head with beard -->
+    <circle cx="0" cy="-25" r="10" fill="#e8d5c4"/>
+    <ellipse cx="-3" cy="-22" rx="3" ry="1.5" fill="#fff" opacity="0.2"/>
+
+    <!-- Wise eyebrows -->
+    <path d="M-5,-27 L-2,-29" stroke="#555" stroke-width="1.5" fill="none"/>
+    <path d="M2,-29 L5,-27" stroke="#555" stroke-width="1.5" fill="none"/>
+
+    <!-- Eyes (closed/meditative) -->
+    <path d="M-5,-25 Q-3,-24 -1,-25" stroke="#333" stroke-width="1" fill="none"/>
+    <path d="M1,-25 Q3,-24 5,-25" stroke="#333" stroke-width="1" fill="none"/>
+
+    <!-- Long beard -->
+    <path d="M-6,-17 Q0,-5 6,-17" fill="#ccc"/>
+    <path d="M-4,-17 L0,0 L4,-17" fill="#ccc"/>
+
+    <!-- Crown/headpiece -->
+    <path d="M-10,-35 L-8,-30 L-4,-33 L0,-28 L4,-33 L8,-30 L10,-35 L8,-32 L4,-35 L0,-30 L-4,-35 L-8,-32 Z" fill="url(#kingGold)"/>
+
+    <!-- Body - formal gi -->
+    <path d="M-12,-15 L-15,25 L-8,28 L0,25 L8,28 L15,25 L12,-15 Z" fill="#f5f5f5"/>
+
+    <!-- Gi collar/lapel -->
+    <path d="M0,-15 L-5,5 L0,15 L5,5 Z" fill="#e8e8e8"/>
+
+    <!-- Black belt with gold stripe (10th dan) -->
+    <rect x="-14" y="10" width="28" height="5" rx="1" fill="#1a1a1a"/>
+    <rect x="-12" y="11" width="3" height="3" fill="url(#kingGold)"/>
+    <rect x="-8" y="11" width="3" height="3" fill="url(#kingGold)"/>
+    <rect x="-4" y="11" width="3" height="3" fill="url(#kingGold)"/>
+
+    <!-- Arms crossed (master pose) -->
+    <path d="M-12,-10 L-20,0 L-15,5 L-5,0 Z" fill="#f5f5f5"/>
+    <path d="M12,-10 L20,0 L15,5 L5,0 Z" fill="#f5f5f5"/>
+    <ellipse cx="0" cy="3" rx="12" ry="5" fill="#f5f5f5"/>
+
+    <!-- Hands -->
+    <circle cx="-18" cy="2" r="4" fill="#e8d5c4"/>
+    <circle cx="18" cy="2" r="4" fill="#e8d5c4"/>
+  </g>
+
+  <!-- K letters in corners -->
+  <text x="5" y="15" font-family="serif" font-size="14" font-weight="bold" fill="currentColor">K</text>
+  <text x="65" y="95" font-family="serif" font-size="14" font-weight="bold" fill="currentColor" transform="rotate(180, 65, 90)">K</text>
+</svg>
