@@ -128,6 +128,7 @@ export class GameEngine {
    * @param {number} [config.initialBalance=1000] - Starting chip balance
    * @param {number} [config.minBet=10] - Minimum allowed bet
    * @param {number} [config.maxBet=500] - Maximum allowed bet
+   * @param {number} [config.deckCount=6] - Number of decks in shoe (casino standard: 6 or 8)
    *
    * @example
    * // Default configuration
@@ -137,15 +138,24 @@ export class GameEngine {
    * const highRoller = new GameEngine({
    *   initialBalance: 10000,
    *   minBet: 100,
-   *   maxBet: 5000
+   *   maxBet: 5000,
+   *   deckCount: 8
    * })
    */
   constructor(config = {}) {
     const {
       initialBalance = DEFAULTS.INITIAL_BALANCE,
       minBet = DEFAULTS.MIN_BET,
-      maxBet = DEFAULTS.MAX_BET
+      maxBet = DEFAULTS.MAX_BET,
+      deckCount = DEFAULTS.DECK_COUNT
     } = config
+
+    /**
+     * Number of decks in the shoe.
+     * @type {number}
+     * @private
+     */
+    this._deckCount = deckCount
 
     /**
      * Card deck for dealing.
@@ -153,7 +163,7 @@ export class GameEngine {
      * @private
      */
     this._deck = new CardDeck()
-    this._deck.createStandardDeck().shuffle()
+    this._deck.createStandardDeck(deckCount).shuffle()
 
     /**
      * Betting system for balance management.
@@ -447,9 +457,10 @@ export class GameEngine {
     // Reset state machine
     this._stateMachine.reset()
 
-    // Check if deck needs reshuffle (less than 15 cards)
-    if (this._deck.getCount() < 15) {
-      this._deck.reset().shuffle()
+    // Check if deck needs reshuffle (casino standard: reshuffle at ~25% penetration)
+    const reshuffleThreshold = Math.floor(this._deckCount * 52 * 0.25)
+    if (this._deck.getCount() < reshuffleThreshold) {
+      this._deck.createStandardDeck(this._deckCount).shuffle()
     }
 
     this._notifySubscribers()

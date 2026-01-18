@@ -238,6 +238,9 @@ ol {
   max-width: var(--max-content-width);
   margin: 0 auto;
   padding: var(--space-sm);
+  background: var(--color-secondary-dark);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius-lg);
 }
 
 /* =============================================================================

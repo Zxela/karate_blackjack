@@ -105,7 +105,8 @@ export const OUTCOME_VALUES = Object.freeze(Object.values(OUTCOMES))
 export const DEFAULTS = Object.freeze({
   INITIAL_BALANCE: 1000,
   MIN_BET: 10,
-  MAX_BET: 500
+  MAX_BET: 500,
+  DECK_COUNT: 6  // Standard casino shoe (6 decks = 312 cards)
 })
 
 // =============================================================================
