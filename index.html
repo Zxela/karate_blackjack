@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="description" content="Karate Blackjack - A karate-themed browser-based blackjack card game">
+  <meta name="theme-color" content="#1a1a2e">
+
+  <title>Karate Blackjack</title>
+
+  <!-- Preconnect for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <!-- Main stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Favicon placeholder -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>%F0%9F%A5%8B</text></svg>">
+</head>
+<body>
+  <!-- Skip link for accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <div class="game-wrapper">
+    <!-- Header Section -->
+    <header class="game-header">
+      <h1 class="game-title">Karate Blackjack</h1>
+      <div class="balance-display" id="balanceDisplay">
+        <span class="balance-label">Balance:</span>
+        <span class="balance-amount" id="balanceAmount">$1000</span>
+      </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main id="main-content" class="game-main">
+      <!-- Message Area -->
+      <div class="message-area" id="messageArea">
+        <p class="message-text" id="messageText">Place your bet to begin</p>
+      </div>
+
+      <!-- Game Table -->
+      <div class="game-table">
+        <!-- Dealer Section -->
+        <section class="dealer-section" aria-label="Dealer's hand">
+          <div class="hand-info">
+            <span class="hand-label">Dealer</span>
+            <span class="hand-value" id="dealerValue">--</span>
+          </div>
+          <div class="dealer-hand card-container" id="dealerHand">
+            <!-- Dealer cards rendered here -->
+          </div>
+        </section>
+
+        <!-- Canvas for card rendering -->
+        <div class="canvas-container">
+          <canvas id="gameCanvas" class="game-canvas" width="800" height="400">
+            Your browser does not support the canvas element.
+          </canvas>
+        </div>
+
+        <!-- Player Section -->
+        <section class="player-section" aria-label="Player's hands">
+          <!-- Player hands container (supports 1-3 hands) -->
+          <div class="player-hands" id="playerHands">
+            <!-- Hand 1 -->
+            <div class="player-hand" id="playerHand0" data-hand-index="0">
+              <div class="hand-info">
+                <span class="hand-label">Hand 1</span>
+                <span class="hand-value" id="playerValue0">--</span>
+                <span class="hand-bet" id="playerBet0"></span>
+              </div>
+              <div class="card-container" id="playerCards0">
+                <!-- Player cards rendered here -->
+              </div>
+            </div>
+
+            <!-- Hand 2 (hidden by default) -->
+            <div class="player-hand hidden" id="playerHand1" data-hand-index="1">
+              <div class="hand-info">
+                <span class="hand-label">Hand 2</span>
+                <span class="hand-value" id="playerValue1">--</span>
+                <span class="hand-bet" id="playerBet1"></span>
+              </div>
+              <div class="card-container" id="playerCards1">
+                <!-- Player cards rendered here -->
+              </div>
+            </div>
+
+            <!-- Hand 3 (hidden by default) -->
+            <div class="player-hand hidden" id="playerHand2" data-hand-index="2">
+              <div class="hand-info">
+                <span class="hand-label">Hand 3</span>
+                <span class="hand-value" id="playerValue2">--</span>
+                <span class="hand-bet" id="playerBet2"></span>
+              </div>
+              <div class="card-container" id="playerCards2">
+                <!-- Player cards rendered here -->
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Controls Section -->
+    <footer class="game-controls">
+      <!-- Betting Controls -->
+      <div class="control-group betting-controls" id="bettingControls">
+        <h2 class="control-group-title visually-hidden">Betting Options</h2>
+
+        <!-- Bet Amount Display -->
+        <div class="bet-display">
+          <span class="bet-label">Current Bet:</span>
+          <span class="bet-amount" id="currentBetAmount">$0</span>
+        </div>
+
+        <!-- Bet Preset Buttons -->
+        <div class="bet-presets">
+          <button type="button" class="btn btn-bet" data-bet="10" aria-label="Bet $10">$10</button>
+          <button type="button" class="btn btn-bet" data-bet="50" aria-label="Bet $50">$50</button>
+          <button type="button" class="btn btn-bet" data-bet="100" aria-label="Bet $100">$100</button>
+          <button type="button" class="btn btn-bet" data-bet="500" aria-label="Bet $500">$500</button>
+        </div>
+
+        <!-- Hand Count Selector -->
+        <div class="hand-selector">
+          <span class="selector-label">Hands:</span>
+          <button type="button" class="btn btn-hand-count active" data-hands="1" aria-pressed="true">1</button>
+          <button type="button" class="btn btn-hand-count" data-hands="2" aria-pressed="false">2</button>
+          <button type="button" class="btn btn-hand-count" data-hands="3" aria-pressed="false">3</button>
+        </div>
+
+        <!-- Deal Button -->
+        <button type="button" class="btn btn-primary btn-deal" id="dealButton" disabled>Deal</button>
+
+        <!-- Clear Bet Button -->
+        <button type="button" class="btn btn-secondary btn-clear" id="clearBetButton">Clear</button>
+      </div>
+
+      <!-- Action Controls -->
+      <div class="control-group action-controls hidden" id="actionControls">
+        <h2 class="control-group-title visually-hidden">Game Actions</h2>
+
+        <button type="button" class="btn btn-action btn-hit" id="hitButton" disabled>Hit</button>
+        <button type="button" class="btn btn-action btn-stand" id="standButton" disabled>Stand</button>
+        <button type="button" class="btn btn-action btn-double" id="doubleButton" disabled>Double</button>
+        <button type="button" class="btn btn-action btn-split" id="splitButton" disabled>Split</button>
+      </div>
+
+      <!-- Insurance Controls -->
+      <div class="control-group insurance-controls hidden" id="insuranceControls">
+        <h2 class="control-group-title visually-hidden">Insurance Options</h2>
+
+        <p class="insurance-prompt">Insurance?</p>
+        <button type="button" class="btn btn-insurance btn-yes" id="insuranceYesButton">Yes</button>
+        <button type="button" class="btn btn-insurance btn-no" id="insuranceNoButton">No</button>
+      </div>
+
+      <!-- New Round Control -->
+      <div class="control-group new-round-controls hidden" id="newRoundControls">
+        <h2 class="control-group-title visually-hidden">Round Complete</h2>
+
+        <button type="button" class="btn btn-primary btn-new-round" id="newRoundButton">New Round</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Game State Indicator (for accessibility) -->
+  <div class="sr-only" role="status" aria-live="polite" id="gameStatusAnnouncer"></div>
+
+  <!-- Main Application Script -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
