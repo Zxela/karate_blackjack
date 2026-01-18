@@ -898,8 +898,22 @@ async function completeRoundIfNeeded() {
       .filter((h) => h && h.cards.length > 0)
       .every((h) => h.isBust)
 
-    // Only animate dealer if not all players busted
-    if (!allBusted) {
+    // Check if all player hands have blackjack - instant win (unless dealer could have blackjack)
+    const allBlackjack = state.playerHands
+      .filter((h) => h && h.cards.length > 0)
+      .every((h) => h.isBlackjack)
+
+    // Dealer's face-up card (second card dealt)
+    const dealerUpCard = state.dealerHand.cards?.[1]?.rank
+    const dealerCouldHaveBlackjack = dealerUpCard === 'A' || dealerUpCard === 10 ||
+      dealerUpCard === 'J' || dealerUpCard === 'Q' || dealerUpCard === 'K'
+
+    // If all players have blackjack and dealer can't have blackjack - instant win
+    if (allBlackjack && !dealerCouldHaveBlackjack) {
+      // Skip dealer turn entirely - player wins instantly
+      game.playDealerTurn() // Still need to call for state transition
+    } else if (!allBusted) {
+      // Normal dealer play required
       // Get dealer's initial card count before playing
       const initialDealerCards = state.dealerHand.cards.length
 
