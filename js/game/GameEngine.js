@@ -1037,6 +1037,8 @@ export class GameEngine {
     if (card1.rank === 'A') {
       this._handStanding[handIndex] = true
       this._handStanding[insertIndex] = true
+      // Check if all hands complete (split Aces auto-stand)
+      this._checkAllHandsComplete()
     }
 
     this._notifySubscribers()

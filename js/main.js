@@ -771,11 +771,30 @@ async function doubleDown() {
 /**
  * Player splits the active hand.
  */
-function splitHand() {
+async function splitHand() {
+  if (isAnimating) return
+  isAnimating = true
+
   // Play split (chop) sound
   audioManager.play('split')
 
   game.split(activeHandIndex)
+
+  const state = game.getState()
+  const hand = state.playerHands[activeHandIndex]
+
+  // For split Aces, hands are auto-standing - check if we need to move to next hand
+  if (hand && hand.isStanding) {
+    activeHandIndex++
+    findActiveHand()
+  }
+
+  updateUI()
+
+  // Check if all hands complete (split Aces case triggers dealer turn)
+  await completeRoundIfNeeded()
+
+  isAnimating = false
   updateUI()
 }
 
