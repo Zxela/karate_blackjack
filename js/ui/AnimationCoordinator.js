@@ -180,7 +180,8 @@ export class AnimationCoordinator {
     this._handCount = handCount
 
     const chips = this._breakIntoChips(amount)
-    const targetPos = this._getChipTargetPosition(handIndex)
+    // Get position of the DOM chip-stack element for accurate animation target
+    const targetPos = this._getDOMChipStackPosition(handIndex)
 
     for (const chip of chips) {
       // Calculate chip position with stacking offset
@@ -189,16 +190,16 @@ export class AnimationCoordinator {
       const chipY = targetPos.y - stackOffset
 
       if (this._animationsEnabled) {
-        // Animate chip flying to table
+        // Animate chip flying to DOM chip-stack position
         await this._animateChipToTable(chip.value, POSITIONS.CHIP_SOURCE, { x: chipX, y: chipY })
       }
 
-      // Add chip to table state
+      // Track chip for potential win/lose animations (but DOM shows the actual chips)
       this._tableChips[handIndex].push({ value: chip.value, x: chipX, y: chipY })
-
-      // Redraw all table chips
-      this._redrawTableChips()
     }
+
+    // Clear canvas after animation - DOM chip-stack handles display
+    this._clearCanvas()
   }
 
   /**
@@ -374,6 +375,128 @@ export class AnimationCoordinator {
     this._redrawTableChips()
   }
 
+  /**
+   * Animates a split action - cards separate into two hands, then new cards dealt.
+   *
+   * @param {Object} originalCard1 - First card (stays in original hand)
+   * @param {Object} originalCard2 - Second card (goes to new hand)
+   * @param {Object} newCard1 - New card for first hand
+   * @param {Object} newCard2 - New card for second hand
+   * @param {number} originalHandIndex - Original hand index before split
+   * @param {number} newHandCount - Total hands after split
+   * @param {Function} updateUI - Callback to update DOM
+   * @returns {Promise<void>}
+   */
+  async animateSplit(
+    originalCard1,
+    originalCard2,
+    newCard1,
+    newCard2,
+    originalHandIndex,
+    newHandCount,
+    updateUI
+  ) {
+    if (!this._animationsEnabled) {
+      if (updateUI) updateUI()
+      return
+    }
+
+    this._handCount = newHandCount
+
+    // Get positions before and after split
+    const oldPositions = this._calculatePlayerPositions(newHandCount - 1)
+    const newPositions = this._calculatePlayerPositions(newHandCount)
+
+    // Original cards start at the original hand position
+    const startPos = oldPositions[originalHandIndex] || oldPositions[0]
+    // After split, first card goes to originalHandIndex, second to originalHandIndex + 1
+    const endPos1 = newPositions[originalHandIndex]
+    const endPos2 = newPositions[originalHandIndex + 1]
+
+    // Animation: Cards separate
+    await this._animateCardSeparation(
+      originalCard1,
+      originalCard2,
+      startPos,
+      endPos1,
+      endPos2
+    )
+
+    // Update DOM to show the separated hands
+    if (updateUI) updateUI()
+    await this._delay(200)
+
+    // Deal new card to first hand
+    await this._animateCardDeal(newCard1, endPos1, 1, true)
+    if (updateUI) updateUI()
+    await this._delay(TIMING.CARD_STAGGER)
+
+    // Deal new card to second hand
+    await this._animateCardDeal(newCard2, endPos2, 1, true)
+    if (updateUI) updateUI()
+
+    this._clearCanvas()
+  }
+
+  /**
+   * Animates two cards separating (for split).
+   *
+   * @param {Object} card1 - First card
+   * @param {Object} card2 - Second card
+   * @param {Object} startPos - Starting position
+   * @param {Object} endPos1 - End position for card 1
+   * @param {Object} endPos2 - End position for card 2
+   * @returns {Promise<void>}
+   * @private
+   */
+  async _animateCardSeparation(card1, card2, startPos, endPos1, endPos2) {
+    const duration = TIMING.CARD_DEAL
+    const animationId = ++this._animationIdCounter
+    this._activeAnimations.add(animationId)
+
+    // Both cards start slightly overlapped at the original position
+    const start1 = { x: startPos.x, y: startPos.y }
+    const start2 = { x: startPos.x + CARD_DIMS.WIDTH - CARD_DIMS.OVERLAP, y: startPos.y }
+
+    return new Promise((resolve) => {
+      const startTime = performance.now()
+
+      const animate = (currentTime) => {
+        if (!this._activeAnimations.has(animationId)) {
+          resolve()
+          return
+        }
+
+        const elapsed = currentTime - startTime
+        const progress = Math.min(elapsed / duration, 1)
+
+        // Ease-out animation
+        const easeProgress = 1 - (1 - progress) ** 3
+
+        // Calculate card positions
+        const x1 = start1.x + (endPos1.x - start1.x) * easeProgress
+        const y1 = start1.y + (endPos1.y - start1.y) * easeProgress
+        const x2 = start2.x + (endPos2.x - start2.x) * easeProgress
+        const y2 = start2.y + (endPos2.y - start2.y) * easeProgress
+
+        // Clear and redraw
+        this._clearCanvas()
+        this._drawCardAnimated(card1, x1, y1, true, 0, 1)
+        this._drawCardAnimated(card2, x2, y2, true, 0, 1)
+
+        if (progress < 1) {
+          requestAnimationFrame(animate)
+        } else {
+          this._activeAnimations.delete(animationId)
+          this._clearCanvas()
+          resolve()
+        }
+      }
+
+      requestAnimationFrame(animate)
+    })
+  }
+
   // ===========================================================================
   // PUBLIC METHODS - CHIP ANIMATIONS (END OF ROUND)
   // ===========================================================================
@@ -401,30 +524,37 @@ export class AnimationCoordinator {
    * @returns {Promise<void>}
    */
   async animateWinPayout(amount, handIndex) {
-    if (!this._animationsEnabled || this._tableChips[handIndex].length === 0) {
+    if (!this._animationsEnabled) {
       this._tableChips[handIndex] = []
-      this._redrawTableChips()
+      this._clearCanvas()
+      return
+    }
+
+    // Get the DOM chip-stack position for animation start point
+    const targetPos = this._getDOMChipStackPosition(handIndex)
+    const dealerPos = { x: this._canvas.width - 100, y: 50 }
+
+    // Recreate chip positions from stored amounts for animation
+    const betChips = [...this._tableChips[handIndex]]
+    if (betChips.length === 0) {
       return
     }
 
     // Calculate winnings (payout minus original bet = profit)
-    const originalBet = this._tableChips[handIndex].reduce((sum, c) => sum + c.value, 0)
+    const originalBet = betChips.reduce((sum, c) => sum + c.value, 0)
     const winnings = amount - originalBet
 
-    // Animate winning chips flying in from dealer
+    // Animate winning chips flying in from dealer to DOM position
     if (winnings > 0) {
       const winChips = this._breakIntoChips(winnings)
-      const targetPos = this._getChipTargetPosition(handIndex)
-      const dealerPos = { x: this._canvas.width - 100, y: 50 }
 
       for (const chip of winChips) {
-        const stackOffset = this._tableChips[handIndex].length * 4
-        const chipX = targetPos.x + (this._tableChips[handIndex].length % 3) * 15
+        const stackOffset = betChips.length * 4
+        const chipX = targetPos.x + (betChips.length % 3) * 15
         const chipY = targetPos.y - stackOffset
 
         await this._animateChipToTable(chip.value, dealerPos, { x: chipX, y: chipY })
-        this._tableChips[handIndex].push({ value: chip.value, x: chipX, y: chipY })
-        this._redrawTableChips()
+        betChips.push({ value: chip.value, x: chipX, y: chipY })
       }
 
       // Brief pause to show the doubled chips
@@ -432,13 +562,15 @@ export class AnimationCoordinator {
     }
 
     // Animate all chips flying back to balance
-    const chips = [...this._tableChips[handIndex]]
-
-    for (const chip of chips) {
+    for (const chip of betChips) {
+      // Update chip position to current DOM position for animation start
+      chip.x = targetPos.x + (betChips.indexOf(chip) % 3) * 15
+      chip.y = targetPos.y - (betChips.indexOf(chip) * 4)
       await this._animateChipAway(chip, POSITIONS.CHIP_SOURCE, 100)
-      this._tableChips[handIndex] = this._tableChips[handIndex].filter((c) => c !== chip)
-      this._redrawTableChips()
     }
+
+    this._tableChips[handIndex] = []
+    this._clearCanvas()
   }
 
   /**
@@ -449,21 +581,31 @@ export class AnimationCoordinator {
    * @returns {Promise<void>}
    */
   async animateLoss(amount, handIndex) {
-    if (!this._animationsEnabled || this._tableChips[handIndex].length === 0) {
+    if (!this._animationsEnabled) {
       this._tableChips[handIndex] = []
-      this._redrawTableChips()
+      this._clearCanvas()
       return
     }
 
-    // Animate chips sliding to the dealer (top right)
     const chips = [...this._tableChips[handIndex]]
+    if (chips.length === 0) {
+      return
+    }
+
+    // Get the DOM chip-stack position for animation start point
+    const targetPos = this._getDOMChipStackPosition(handIndex)
     const dealerCollect = { x: this._canvas.width - 100, y: 50 }
 
+    // Animate chips sliding to the dealer (top right)
     for (const chip of chips) {
+      // Update chip position to current DOM position for animation start
+      chip.x = targetPos.x + (chips.indexOf(chip) % 3) * 15
+      chip.y = targetPos.y - (chips.indexOf(chip) * 4)
       await this._animateChipAway(chip, dealerCollect, 120)
-      this._tableChips[handIndex] = this._tableChips[handIndex].filter((c) => c !== chip)
-      this._redrawTableChips()
     }
+
+    this._tableChips[handIndex] = []
+    this._clearCanvas()
   }
 
   // ===========================================================================
@@ -865,6 +1007,35 @@ export class AnimationCoordinator {
     // 3 hands
     const positions = [canvasWidth / 4, canvasWidth / 2, (canvasWidth * 3) / 4]
     return { x: positions[handIndex] - 20, y: chipY }
+  }
+
+  /**
+   * Gets the position of the DOM chip-stack element relative to the canvas.
+   * This allows canvas chip animations to end at the correct DOM position.
+   *
+   * @param {number} handIndex - Hand index
+   * @returns {{x: number, y: number}}
+   * @private
+   */
+  _getDOMChipStackPosition(handIndex) {
+    const chipStackEl = document.getElementById(`chipStack${handIndex}`)
+    // Fallback if elements aren't available or getBoundingClientRect isn't supported (tests)
+    if (
+      !chipStackEl ||
+      !this._canvas ||
+      typeof this._canvas.getBoundingClientRect !== 'function'
+    ) {
+      return this._getChipTargetPosition(handIndex)
+    }
+
+    const canvasRect = this._canvas.getBoundingClientRect()
+    const chipStackRect = chipStackEl.getBoundingClientRect()
+
+    // Calculate position relative to canvas
+    const x = chipStackRect.left - canvasRect.left + chipStackRect.width / 2
+    const y = chipStackRect.top - canvasRect.top + chipStackRect.height / 2
+
+    return { x, y }
   }
 
   /**

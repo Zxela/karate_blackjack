@@ -847,7 +847,7 @@ async function deal() {
     }
   }
 
-  // Check for insurance or auto-proceed
+  // Check for insurance or auto-proceed based on phase
   if (newState.phase === GAME_PHASES.PLAYER_TURN) {
     const hasActiveHand = findActiveHand()
 
@@ -858,6 +858,12 @@ async function deal() {
       await completeRoundIfNeeded()
       return
     }
+  } else if (newState.phase === GAME_PHASES.DEALER_TURN) {
+    // All player hands are complete (e.g., all blackjacks) - proceed to dealer
+    isAnimating = false
+    updateUI()
+    await completeRoundIfNeeded()
+    return
   }
 
   isAnimating = false
@@ -1202,10 +1208,38 @@ async function splitHand() {
   // Play split (chop) sound
   audioManager.play('split')
 
+  // Get state BEFORE split to capture original cards
+  const stateBefore = game.getState()
+  const originalHand = stateBefore.playerHands[activeHandIndex]
+  const originalCard1 = originalHand?.cards?.[0]
+  const originalCard2 = originalHand?.cards?.[1]
+  const originalHandCount = stateBefore.playerHands.length
+
+  // Perform the split
   game.split(activeHandIndex)
 
-  const state = game.getState()
-  const hand = state.playerHands[activeHandIndex]
+  // Get state AFTER split to get newly dealt cards
+  const stateAfter = game.getState()
+  const newHand1 = stateAfter.playerHands[activeHandIndex]
+  const newHand2 = stateAfter.playerHands[activeHandIndex + 1]
+  const newCard1 = newHand1?.cards?.[1] // Second card in first hand (dealt after split)
+  const newCard2 = newHand2?.cards?.[1] // Second card in second hand (dealt after split)
+  const newHandCount = stateAfter.playerHands.length
+
+  // Animate the split if we have the animation coordinator
+  if (animationCoordinator && originalCard1 && originalCard2 && newCard1 && newCard2) {
+    await animationCoordinator.animateSplit(
+      originalCard1,
+      originalCard2,
+      newCard1,
+      newCard2,
+      activeHandIndex,
+      newHandCount,
+      updateUI
+    )
+  }
+
+  const hand = stateAfter.playerHands[activeHandIndex]
 
   // For split Aces, hands are auto-standing - check if we need to move to next hand
   if (hand && hand.isStanding) {
