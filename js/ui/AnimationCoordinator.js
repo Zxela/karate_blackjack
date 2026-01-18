@@ -33,9 +33,10 @@ const TIMING = {
  * @type {Object}
  */
 const ANIMATION = {
-  CARD_ARC_HEIGHT: 40,
-  CARD_ROTATION: 15,
-  CARD_SCALE_FLIGHT: 1.08,
+  CARD_ARC_HEIGHT: 50,        // Increased for more dramatic arc
+  CARD_ROTATION_START: 25,    // Starting rotation angle (degrees)
+  CARD_ROTATION_SPIN: 180,    // Additional spin during flight (degrees)
+  CARD_SCALE_FLIGHT: 1.1,     // Slightly larger during flight
   BOUNCE_OVERSHOOT: 0.12,
   CHIP_BOUNCE: 8
 }
@@ -557,8 +558,8 @@ export class AnimationCoordinator {
         betChips.push({ value: chip.value, x: chipX, y: chipY })
       }
 
-      // Brief pause to show the doubled chips
-      await this._delay(300)
+      // Pause to show the winnings (2-3x longer for better visibility)
+      await this._delay(800)
     }
 
     // Animate all chips flying back to balance
@@ -798,8 +799,14 @@ export class AnimationCoordinator {
         const baseY = startY + (endY - startY) * Math.min(easeProgress, 1)
         const currentY = baseY - arcHeight
 
-        // Rotation: starts tilted, levels out
-        const rotation = ANIMATION.CARD_ROTATION * (1 - linearProgress) * (Math.PI / 180)
+        // Rotation: starts tilted, spins during flight, ends level
+        // Combine initial tilt with spin that decelerates
+        const tiltFactor = 1 - linearProgress // Starts at 1, goes to 0
+        const spinFactor = Math.sin(linearProgress * Math.PI) // Peaks at middle
+        const rotation = (
+          ANIMATION.CARD_ROTATION_START * tiltFactor +
+          ANIMATION.CARD_ROTATION_SPIN * linearProgress * spinFactor * 0.3
+        ) * (Math.PI / 180)
 
         // Scale: slightly larger during flight
         const scaleAmount =
@@ -993,7 +1000,9 @@ export class AnimationCoordinator {
    */
   _getChipTargetPosition(handIndex) {
     const canvasWidth = this._canvas.width
-    const chipY = 350
+    const canvasHeight = this._canvas.height
+    // Chips are below the player cards - position near bottom of canvas
+    const chipY = canvasHeight - 60
 
     if (this._handCount === 1) {
       return { x: canvasWidth / 2 - 20, y: chipY }
