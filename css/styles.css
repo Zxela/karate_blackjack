@@ -346,6 +346,8 @@ ol {
   border-radius: 50%;
   cursor: pointer;
   transition: transform var(--transition-fast);
+  /* Center thumb on track: -(thumb height - track height) / 2 */
+  margin-top: -5px;
 }
 
 .volume-slider::-webkit-slider-thumb:hover {
