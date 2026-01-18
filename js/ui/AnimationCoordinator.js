@@ -20,8 +20,8 @@ import { audioManager } from '../audio/AudioManager.js'
  * @type {Object}
  */
 const TIMING = {
-  CARD_DEAL: 300,
-  CARD_STAGGER: 120,
+  CARD_DEAL: 380,      // Slowed from 300 for more dramatic effect
+  CARD_STAGGER: 180,   // Slowed from 120 for better readability
   CHIP_MOVE: 250,
   RESULT_SHOW: 400,
   DEALER_PAUSE: 600,
