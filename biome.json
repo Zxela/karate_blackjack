@@ -40,6 +40,14 @@
     }
   },
   "files": {
-    "ignore": ["node_modules/**", "coverage/**", "dist/**", "*.min.js", "*.min.css"]
+    "ignore": [
+      "node_modules/**",
+      "coverage/**",
+      "dist/**",
+      "*.min.js",
+      "*.min.css",
+      "test-results/**",
+      "playwright-report/**"
+    ]
   }
 }

@@ -275,6 +275,20 @@ export class GameEngine {
     this._testDealerShowsAce = false
 
     /**
+     * Test flag to force player to get a splittable pair.
+     * @type {boolean}
+     * @private
+     */
+    this._testForcePair = false
+
+    /**
+     * Test rank for forced pair (e.g., '8' for two 8s).
+     * @type {string|null}
+     * @private
+     */
+    this._testPairRank = null
+
+    /**
      * Number of hands to play (1-3).
      * @type {number}
      * @private
@@ -584,8 +598,19 @@ export class GameEngine {
     // Deal cards: 2 rounds
     for (let round = 0; round < 2; round++) {
       // Deal to each player hand
-      for (const hand of this._playerHands) {
-        this._dealCardToHand(hand)
+      for (let i = 0; i < this._playerHands.length; i++) {
+        const hand = this._playerHands[i]
+        // For testing: force pair on first hand
+        if (this._testForcePair && i === 0 && this._testPairRank) {
+          const forcedCard = this._findCardByRankInDeck(this._testPairRank)
+          if (forcedCard) {
+            hand.addCard(forcedCard)
+          } else {
+            this._dealCardToHand(hand)
+          }
+        } else {
+          this._dealCardToHand(hand)
+        }
       }
 
       // Deal to dealer
@@ -607,15 +632,45 @@ export class GameEngine {
     // Transition to dealing then player turn
     this._stateMachine.transition(GAME_PHASES.DEALING)
 
+    // Mark blackjack hands as standing (they can't take any action)
+    for (let i = 0; i < this._playerHands.length; i++) {
+      if (this._playerHands[i].isBlackjack()) {
+        this._handStanding[i] = true
+      }
+    }
+
     // Check for blackjacks and handle insurance
     if (this._insuranceOffered) {
       this._stateMachine.transition(GAME_PHASES.INSURANCE_CHECK)
     } else {
       this._stateMachine.transition(GAME_PHASES.PLAYER_TURN)
+      // Check if all hands are complete (e.g., all have blackjack)
+      this._checkAllHandsCompleteAfterDeal()
     }
 
     this._notifySubscribers()
     return true
+  }
+
+  /**
+   * Checks if all hands are complete after initial deal.
+   * Unlike _checkAllHandsComplete(), this finds the first active hand from index 0.
+   * @private
+   */
+  _checkAllHandsCompleteAfterDeal() {
+    const allComplete = this._handStanding.every((standing) => standing)
+
+    if (allComplete) {
+      this._stateMachine.transition(GAME_PHASES.DEALER_TURN)
+    } else {
+      // Find first active hand starting from 0
+      for (let i = 0; i < this._handStanding.length; i++) {
+        if (!this._handStanding[i]) {
+          this._currentHandIndex = i
+          return
+        }
+      }
+    }
   }
 
   /**
@@ -651,6 +706,31 @@ export class GameEngine {
    */
   _testSetDealerShowsAce(value) {
     this._testDealerShowsAce = value
+  }
+
+  /**
+   * Sets up a forced pair for player (testing only).
+   * @param {string|null} rank - The rank for the pair (e.g., '8'), or null to disable
+   */
+  _testSetForcePair(rank) {
+    this._testForcePair = rank !== null
+    this._testPairRank = rank
+  }
+
+  /**
+   * Finds and removes a card with the specified rank from the deck (testing only).
+   * @param {string} rank - The rank to find
+   * @returns {import('../types/index.js').Card | null}
+   * @private
+   */
+  _findCardByRankInDeck(rank) {
+    const cards = this._deck.cards
+    for (let i = cards.length - 1; i >= 0; i--) {
+      if (cards[i].rank === rank) {
+        return cards.splice(i, 1)[0]
+      }
+    }
+    return null
   }
 
   // ===========================================================================
@@ -1033,6 +1113,9 @@ export class GameEngine {
     // Transition to player turn
     this._stateMachine.transition(GAME_PHASES.PLAYER_TURN)
 
+    // Check if all hands are complete (e.g., all have blackjack)
+    this._checkAllHandsCompleteAfterDeal()
+
     this._notifySubscribers()
     return true
   }
@@ -1061,6 +1144,9 @@ export class GameEngine {
 
     // Transition to player turn
     this._stateMachine.transition(GAME_PHASES.PLAYER_TURN)
+
+    // Check if all hands are complete (e.g., all have blackjack)
+    this._checkAllHandsCompleteAfterDeal()
 
     this._notifySubscribers()
     return true

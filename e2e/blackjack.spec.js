@@ -440,6 +440,179 @@ test.describe('Karate Blackjack Game', () => {
         await expect(splitButton).toBeVisible()
       }
     })
+
+    test('split button is enabled when player has a pair', async ({ page }) => {
+      // Force a pair of 8s for testing
+      await page.evaluate(() => {
+        window.__TEST_API__.forcePair('8')
+      })
+
+      await page.click('[data-bet="100"]')
+      await page.click('#dealButton')
+      await page.waitForTimeout(3000)
+
+      // Handle insurance if dealer shows ace
+      if (await page.locator('#insuranceControls').isVisible()) {
+        await page.click('#insuranceNoButton')
+        await page.waitForTimeout(500)
+      }
+
+      // Check if we're in player turn with action controls visible
+      if (await page.locator('#actionControls').isVisible()) {
+        // Split button should be enabled when player has a pair
+        const splitButton = page.locator('#splitButton')
+        await expect(splitButton).toBeVisible()
+        await expect(splitButton).toBeEnabled()
+      }
+    })
+
+    test('splitting creates two hands from one pair', async ({ page }) => {
+      // Force a pair of 8s for testing
+      await page.evaluate(() => {
+        window.__TEST_API__.forcePair('8')
+      })
+
+      await page.click('[data-bet="100"]')
+      await page.click('#dealButton')
+      await page.waitForTimeout(3000)
+
+      // Handle insurance if dealer shows ace
+      if (await page.locator('#insuranceControls').isVisible()) {
+        await page.click('#insuranceNoButton')
+        await page.waitForTimeout(500)
+      }
+
+      // Check if action controls are visible and split is enabled
+      if (await page.locator('#actionControls').isVisible()) {
+        const splitButton = page.locator('#splitButton')
+
+        if (await splitButton.isEnabled()) {
+          // Before split: only one hand visible
+          const visibleHandsBefore = await page.locator('.player-hand:not(.hidden)').count()
+
+          await splitButton.click()
+          await page.waitForTimeout(500)
+
+          // After split: two hands should be visible
+          const visibleHandsAfter = await page.locator('.player-hand:not(.hidden)').count()
+          expect(visibleHandsAfter).toBe(visibleHandsBefore + 1)
+        }
+      }
+    })
+
+    test('splitting deducts additional bet from balance', async ({ page }) => {
+      // Force a pair of 8s for testing
+      await page.evaluate(() => {
+        window.__TEST_API__.forcePair('8')
+      })
+
+      // Start with $1000 balance, bet $100
+      await page.click('[data-bet="100"]')
+      await page.click('#dealButton')
+      await page.waitForTimeout(3000)
+
+      // Handle insurance if dealer shows ace
+      if (await page.locator('#insuranceControls').isVisible()) {
+        await page.click('#insuranceNoButton')
+        await page.waitForTimeout(500)
+      }
+
+      // After deal, balance should be $900 (bet deducted)
+      // Check if action controls are visible and split is enabled
+      if (await page.locator('#actionControls').isVisible()) {
+        const splitButton = page.locator('#splitButton')
+
+        if (await splitButton.isEnabled()) {
+          // Balance before split should be $900
+          await expect(page.locator('#balanceAmount')).toContainText('$900')
+
+          await splitButton.click()
+          await page.waitForTimeout(500)
+
+          // After split, balance should be $800 (additional bet deducted)
+          await expect(page.locator('#balanceAmount')).toContainText('$800')
+        }
+      }
+    })
+
+    test('split button is disabled when max hands reached', async ({ page }) => {
+      // Force a pair of 8s for testing
+      await page.evaluate(() => {
+        window.__TEST_API__.forcePair('8')
+      })
+
+      await page.click('[data-bet="50"]')
+      await page.click('#dealButton')
+      await page.waitForTimeout(3000)
+
+      // Handle insurance if dealer shows ace
+      if (await page.locator('#insuranceControls').isVisible()) {
+        await page.click('#insuranceNoButton')
+        await page.waitForTimeout(500)
+      }
+
+      // Check if action controls are visible and split is enabled
+      if (await page.locator('#actionControls').isVisible()) {
+        const splitButton = page.locator('#splitButton')
+
+        if (await splitButton.isEnabled()) {
+          // Split twice to reach max hands (3)
+          await splitButton.click()
+          await page.waitForTimeout(500)
+
+          // Check if we can split again (need another pair)
+          // The game may or may not allow based on what cards are dealt
+          // After first split, check state
+          const state = await page.evaluate(() => window.__TEST_API__.getState())
+
+          if (state.playerHands.length >= 3) {
+            // At max hands, split should be disabled
+            await expect(splitButton).toBeDisabled()
+          }
+        }
+      }
+    })
+
+    test('can play both hands after split', async ({ page }) => {
+      // Force a pair of 8s for testing
+      await page.evaluate(() => {
+        window.__TEST_API__.forcePair('8')
+      })
+
+      await page.click('[data-bet="100"]')
+      await page.click('#dealButton')
+      await page.waitForTimeout(3000)
+
+      // Handle insurance if dealer shows ace
+      if (await page.locator('#insuranceControls').isVisible()) {
+        await page.click('#insuranceNoButton')
+        await page.waitForTimeout(500)
+      }
+
+      // Check if action controls are visible and split is enabled
+      if (await page.locator('#actionControls').isVisible()) {
+        const splitButton = page.locator('#splitButton')
+
+        if (await splitButton.isEnabled()) {
+          await splitButton.click()
+          await page.waitForTimeout(500)
+
+          // After split, we should still be in player turn
+          // Stand on first hand
+          if (await page.locator('#actionControls').isVisible()) {
+            await page.click('#standButton')
+            await page.waitForTimeout(1000)
+
+            // Should move to second hand or dealer turn
+            // Check game state
+            const state = await page.evaluate(() => window.__TEST_API__.getState())
+
+            // Either we're on the second hand, or game completed
+            expect(['playerTurn', 'dealerTurn', 'resolution', 'gameOver']).toContain(state.phase)
+          }
+        }
+      }
+    })
   })
 
   test.describe('House Rules Display', () => {

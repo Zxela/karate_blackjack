@@ -305,8 +305,14 @@ describe('GameEngine', () => {
       engine.deal()
 
       const state = engine.getState()
-      // After deal, game is in playerTurn unless dealer shows Ace (then insuranceCheck)
-      const validPhases = [GAME_PHASES.PLAYER_TURN, GAME_PHASES.INSURANCE_CHECK]
+      // After deal, game is in playerTurn unless:
+      // - dealer shows Ace (then insuranceCheck)
+      // - all player hands have blackjack (then dealerTurn since they auto-stand)
+      const validPhases = [
+        GAME_PHASES.PLAYER_TURN,
+        GAME_PHASES.INSURANCE_CHECK,
+        GAME_PHASES.DEALER_TURN
+      ]
       expect(validPhases).toContain(state.phase)
     })
 
@@ -372,6 +378,11 @@ describe('GameEngine', () => {
     })
 
     it('adds card to specified hand', () => {
+      // Skip if player got blackjack (hand is standing and cannot hit)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const beforeCount = engine.getState().playerHands[0].cards.length
 
       engine.hit(0)
@@ -381,6 +392,11 @@ describe('GameEngine', () => {
     })
 
     it('recalculates hand value after hit', () => {
+      // Skip if player got blackjack (hand is standing and cannot hit)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const beforeCardCount = engine.getState().playerHands[0].cards.length
 
       engine.hit(0)
@@ -413,6 +429,11 @@ describe('GameEngine', () => {
     })
 
     it('notifies subscribers after hit', () => {
+      // Skip if player got blackjack (hand is standing and cannot hit)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const callback = vi.fn()
       engine.subscribe(callback)
       callback.mockClear()
@@ -476,6 +497,11 @@ describe('GameEngine', () => {
     })
 
     it('notifies subscribers after stand', () => {
+      // Skip if player got blackjack (hand is already standing)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const callback = vi.fn()
       engine.subscribe(callback)
       callback.mockClear()
@@ -523,6 +549,11 @@ describe('GameEngine', () => {
     })
 
     it('doubles the bet amount', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       engine.doubleDown(0)
 
       const state = engine.getState()
@@ -530,6 +561,11 @@ describe('GameEngine', () => {
     })
 
     it('deducts additional bet from balance', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       engine.doubleDown(0)
 
       const state = engine.getState()
@@ -537,6 +573,11 @@ describe('GameEngine', () => {
     })
 
     it('deals exactly one card to hand', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const beforeCount = engine.getState().playerHands[0].cards.length
 
       engine.doubleDown(0)
@@ -546,6 +587,11 @@ describe('GameEngine', () => {
     })
 
     it('marks hand as doubled', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       engine.doubleDown(0)
 
       const state = engine.getState()
@@ -553,6 +599,11 @@ describe('GameEngine', () => {
     })
 
     it('auto-stands the hand after double', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       engine.doubleDown(0)
 
       const state = engine.getState()
@@ -568,6 +619,11 @@ describe('GameEngine', () => {
     })
 
     it('returns false with more than 2 cards', () => {
+      // Skip if player got blackjack (cannot hit then double)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       engine.hit(0)
 
       const result = engine.doubleDown(0)
@@ -580,6 +636,11 @@ describe('GameEngine', () => {
       poorEngine.placeBet(0, 100)
       poorEngine.deal()
 
+      // Skip if player got blackjack
+      if (poorEngine.getState().playerHands[0]?.isBlackjack) {
+        return
+      }
+
       const result = poorEngine.doubleDown(0)
       expect(result).toBe(false)
     })
@@ -590,6 +651,11 @@ describe('GameEngine', () => {
     })
 
     it('notifies subscribers after double down', () => {
+      // Skip if player got blackjack (cannot double down)
+      if (engine.getState().playerHands[0].isBlackjack) {
+        return
+      }
+
       const callback = vi.fn()
       engine.subscribe(callback)
       callback.mockClear()
@@ -676,6 +742,11 @@ describe('GameEngine', () => {
       splitEngine.startNewRound()
       splitEngine.placeBet(0, 100)
       splitEngine.deal()
+
+      // Handle insurance if offered before attempting split
+      if (splitEngine.getState().insuranceOffered) {
+        splitEngine.declineInsurance()
+      }
 
       const state = splitEngine.getState()
       if (state.playerHands[0].canSplit) {
@@ -1683,7 +1754,7 @@ describe('GameEngine', () => {
         expect(state.bets[1]).toBe(75)
       })
 
-      it('starts with currentHandIndex at 0', () => {
+      it('starts with currentHandIndex at first active hand', () => {
         engine.placeBet(0, 50)
         engine.placeBet(1, 50)
         engine.deal()
@@ -1694,7 +1765,13 @@ describe('GameEngine', () => {
         }
 
         const state = engine.getState()
-        expect(state.currentHandIndex).toBe(0)
+        // currentHandIndex should be at first non-standing hand
+        // If hand 0 got blackjack, it will be 1. Otherwise, it should be 0.
+        if (state.playerHands[0].isBlackjack) {
+          expect(state.currentHandIndex).toBe(1)
+        } else {
+          expect(state.currentHandIndex).toBe(0)
+        }
       })
 
       it('advances to hand 1 after standing on hand 0', () => {
@@ -1799,21 +1876,32 @@ describe('GameEngine', () => {
           engine.declineInsurance()
         }
 
-        expect(engine.getState().currentHandIndex).toBe(0)
-
-        engine.stand(0)
-        const stateAfter1 = engine.getState()
-        if (stateAfter1.phase === GAME_PHASES.PLAYER_TURN) {
-          expect(stateAfter1.currentHandIndex).toBe(1)
+        // After deal, currentHandIndex should be at the first non-standing hand.
+        // Hands with blackjack auto-stand, so we need to find the first playable hand.
+        const state = engine.getState()
+        const firstPlayableIndex = state.playerHands.findIndex((h) => !h.isStanding)
+        if (firstPlayableIndex >= 0) {
+          expect(state.currentHandIndex).toBe(firstPlayableIndex)
         }
 
-        engine.stand(1)
-        const stateAfter2 = engine.getState()
-        if (stateAfter2.phase === GAME_PHASES.PLAYER_TURN) {
-          expect(stateAfter2.currentHandIndex).toBe(2)
+        // Stand on each hand and verify advancement
+        for (let i = 0; i < 3; i++) {
+          const currentState = engine.getState()
+          if (currentState.phase !== GAME_PHASES.PLAYER_TURN) break
+
+          const currentIdx = currentState.currentHandIndex
+          if (!currentState.playerHands[currentIdx].isStanding) {
+            engine.stand(currentIdx)
+          }
+
+          const afterStand = engine.getState()
+          if (afterStand.phase === GAME_PHASES.PLAYER_TURN) {
+            // Should have advanced to next non-standing hand
+            expect(afterStand.currentHandIndex).toBeGreaterThan(currentIdx)
+          }
         }
 
-        engine.stand(2)
+        // After all hands are complete, should transition to dealer turn
         expect(engine.getState().phase).toBe(GAME_PHASES.DEALER_TURN)
       })
 
@@ -1914,6 +2002,11 @@ describe('GameEngine', () => {
       })
 
       it('hit affects only the specified hand', () => {
+        // Skip if player got blackjack on hand 0 (cannot hit)
+        if (engine.getState().playerHands[0].isBlackjack) {
+          return
+        }
+
         const hand0CardsBefore = engine.getState().playerHands[0].cards.length
         const hand1CardsBefore = engine.getState().playerHands[1].cards.length
 

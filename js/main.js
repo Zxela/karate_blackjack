@@ -886,6 +886,17 @@ function initializeGame() {
   }
 
   console.log('=== Game Ready ===')
+
+  // Expose test API for E2E testing
+  window.__TEST_API__ = {
+    getGame: () => game,
+    forcePair: (rank) => game._testSetForcePair(rank),
+    forceDealerAce: (value) => game._testSetDealerShowsAce(value),
+    getState: () => game.getState(),
+    startNewRound: () => {
+      newRound()
+    }
+  }
 }
 
 // Wait for DOM
