@@ -660,12 +660,13 @@ describe('Integration: Edge Cases and State Validation', () => {
   describe('Insurance Scenario', () => {
     it('should handle insurance with dealer blackjack correctly', () => {
       // Deal order: P1, D1, P2, D2
-      // Dealer shows Ace (first dealer card) and has blackjack (A + K)
+      // Dealer shows Ace (face-up card = D2) and has blackjack (K + A)
+      // dealerCards[0] = D1 (hole card), dealerCards[1] = D2 (face-up card)
       const deckCards = [
         card('hearts', 10), // Player card 1
-        card('spades', 'A'), // Dealer card 1 (shows Ace - insurance offered)
+        card('diamonds', 'K'), // Dealer card 1 (D1 - hole card)
         card('clubs', 8), // Player card 2 (18)
-        card('diamonds', 'K') // Dealer card 2 (hole card - blackjack!)
+        card('spades', 'A') // Dealer card 2 (D2 - face-up Ace - insurance offered!)
       ]
 
       const engine = new GameEngine({ initialBalance: 1000 })
@@ -766,6 +767,739 @@ describe('Integration: Edge Cases and State Validation', () => {
       const dealerState = engine.getState().dealerHand
       expect(dealerState.value).toBe(17)
       expect(dealerState.cards.length).toBe(2)
+    })
+  })
+
+  // ===========================================================================
+  // SPLIT SCENARIOS
+  // ===========================================================================
+
+  describe('Split Scenarios', () => {
+    it('should split a pair of 8s correctly', () => {
+      // Deal order: P1, D1, P2, D2, then hit cards
+      const deckCards = [
+        card('hearts', 8), // Player card 1
+        card('spades', 7), // Dealer card 1 (hole)
+        card('clubs', 8), // Player card 2 (pair of 8s)
+        card('diamonds', 10), // Dealer card 2 (shows 10)
+        // After split:
+        card('hearts', 10), // Second card for first hand (8+10=18)
+        card('clubs', 3), // Second card for second hand (8+3=11)
+        card('diamonds', 7) // Hit for second hand (11+7=18)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Should be able to split
+      expect(engine.canSplit(0)).toBe(true)
+
+      // Split the pair
+      engine.split(0)
+
+      const state = engine.getState()
+      expect(state.playerHands.length).toBe(2)
+      expect(state.balance).toBe(800) // 1000 - 100 - 100
+
+      // First hand should have 8 + new card
+      expect(state.playerHands[0].value).toBeGreaterThanOrEqual(8)
+
+      // Stand on first hand
+      engine.stand(0)
+
+      // Play second hand
+      if (!state.playerHands[1].isStanding) {
+        engine.hit(1) // Hit the 11
+        engine.stand(1)
+      }
+
+      // Dealer plays
+      engine.playDealerTurn()
+      engine.resolveRound()
+
+      expect(engine.getState().phase).toBe(GAME_PHASES.GAME_OVER)
+    })
+
+    it('should split Aces and get only one card each', () => {
+      const deckCards = [
+        card('hearts', 'A'), // Player card 1
+        card('spades', 7), // Dealer card 1 (hole)
+        card('clubs', 'A'), // Player card 2 (pair of Aces)
+        card('diamonds', 9), // Dealer card 2
+        // After split:
+        card('hearts', 10), // Only card for first hand (A+10=21)
+        card('clubs', 5) // Only card for second hand (A+5=16)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Split Aces
+      engine.split(0)
+
+      // After splitting Aces, both hands should be standing (only one card each)
+      const state = engine.getState()
+      expect(state.playerHands[0].isStanding).toBe(true)
+      expect(state.playerHands[1].isStanding).toBe(true)
+    })
+
+    it('should not allow split after hit', () => {
+      const deckCards = [
+        card('hearts', 5), // Player card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 5), // Player card 2 (pair of 5s)
+        card('diamonds', 10), // Dealer face-up
+        card('hearts', 2) // Hit card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Initially can split
+      expect(engine.canSplit(0)).toBe(true)
+
+      // Hit
+      engine.hit(0)
+
+      // Can no longer split (more than 2 cards)
+      expect(engine.canSplit(0)).toBe(false)
+    })
+
+    it('should not allow split when balance is insufficient', () => {
+      const deckCards = [
+        card('hearts', 8), // Player card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 8), // Player card 2 (pair of 8s)
+        card('diamonds', 10) // Dealer face-up
+      ]
+
+      const engine = new GameEngine({ initialBalance: 150 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100) // Only 50 left
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Cannot split - not enough for another bet
+      expect(engine.canSplit(0)).toBe(false)
+    })
+
+    it('should allow split up to 3 hands', () => {
+      const deckCards = [
+        card('hearts', 8), // Player card 1
+        card('spades', 6), // Dealer hole
+        card('clubs', 8), // Player card 2 (pair of 8s)
+        card('diamonds', 10), // Dealer face-up
+        // First split
+        card('hearts', 8), // New card for first hand
+        card('clubs', 10), // New card for second hand
+        // Second split (first hand has 8+8)
+        card('diamonds', 9), // New card for hand after second split
+        card('spades', 2) // New card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // First split
+      engine.split(0)
+      expect(engine.getState().playerHands.length).toBe(2)
+
+      // If first hand got another 8, can split again
+      const state = engine.getState()
+      if (engine.canSplit(0)) {
+        engine.split(0)
+        expect(engine.getState().playerHands.length).toBe(3)
+
+        // Should not allow 4th split (max 3 hands)
+        expect(engine.canSplit(0)).toBe(false)
+      }
+    })
+  })
+
+  // ===========================================================================
+  // DOUBLE DOWN SCENARIOS
+  // ===========================================================================
+
+  describe('Double Down Scenarios', () => {
+    it('should double down and receive exactly one card', () => {
+      const deckCards = [
+        card('hearts', 5), // Player card 1
+        card('spades', 6), // Dealer hole
+        card('clubs', 6), // Player card 2 (11)
+        card('diamonds', 10), // Dealer face-up
+        card('hearts', 10) // Double down card (21)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Can double
+      expect(engine.canDoubleDown(0)).toBe(true)
+
+      // Double down
+      engine.doubleDown(0)
+
+      const state = engine.getState()
+      // Should have exactly 3 cards and be standing
+      expect(state.playerHands[0].cards.length).toBe(3)
+      expect(state.playerHands[0].isStanding).toBe(true)
+      expect(state.playerHands[0].isDoubled).toBe(true)
+      // Bet should be doubled
+      expect(state.bets[0]).toBe(200)
+      expect(state.balance).toBe(800) // 1000 - 200
+    })
+
+    it('should not allow double after hit', () => {
+      const deckCards = [
+        card('hearts', 3), // Player card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 5), // Player card 2 (8)
+        card('diamonds', 10), // Dealer face-up
+        card('hearts', 2) // Hit card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Hit
+      engine.hit(0)
+
+      // Can no longer double (more than 2 cards)
+      expect(engine.canDoubleDown(0)).toBe(false)
+    })
+
+    it('should not allow double when balance is insufficient', () => {
+      const deckCards = [
+        card('hearts', 5), // Player card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 6), // Player card 2 (11)
+        card('diamonds', 10) // Dealer face-up
+      ]
+
+      const engine = new GameEngine({ initialBalance: 150 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100) // Only 50 left
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Cannot double - not enough for another bet
+      expect(engine.canDoubleDown(0)).toBe(false)
+    })
+
+    it('should double on split hand', () => {
+      const deckCards = [
+        card('hearts', 5), // Player card 1
+        card('spades', 6), // Dealer hole
+        card('clubs', 5), // Player card 2 (pair of 5s)
+        card('diamonds', 10), // Dealer face-up
+        // After split
+        card('hearts', 6), // Second card for first hand (5+6=11, great for double!)
+        card('clubs', 6), // Second card for second hand (5+6=11)
+        card('diamonds', 10) // Double down card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Split
+      engine.split(0)
+
+      // Double on first hand
+      if (engine.canDoubleDown(0)) {
+        engine.doubleDown(0)
+        expect(engine.getState().playerHands[0].isDoubled).toBe(true)
+      }
+    })
+  })
+
+  // ===========================================================================
+  // MULTIPLE HANDS SCENARIOS
+  // ===========================================================================
+
+  describe('Multiple Hands Scenarios', () => {
+    it('should handle 2 hands with mixed results', () => {
+      // Deal order for 2 hands:
+      // Round 1: H1-C1, D-C1, H2-C1
+      // Round 2: H1-C2, D-C2, H2-C2
+      const deckCards = [
+        card('hearts', 10), // Hand 1, card 1
+        card('spades', 7), // Dealer card 1 (hole)
+        card('clubs', 10), // Hand 2, card 1
+        card('hearts', 'K'), // Hand 1, card 2 (20)
+        card('diamonds', 10), // Dealer card 2 (face-up, total 17)
+        card('clubs', 2), // Hand 2, card 2 (12)
+        card('diamonds', 10), // Hit card for hand 2 (22 - bust)
+        // Extra cards for dealer just in case
+        card('hearts', 5),
+        card('clubs', 5)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      engine.placeBet(1, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Hand 1: Stand on 20
+      engine.stand(0)
+
+      // Hand 2: Hit on 12
+      engine.hit(1)
+      // Either bust or continue
+      const state = engine.getState()
+      if (!state.playerHands[1].isBust && !state.playerHands[1].isStanding) {
+        engine.stand(1)
+      }
+
+      // Dealer plays
+      engine.playDealerTurn()
+      const results = engine.resolveRound()
+
+      // Results should be defined
+      expect(results).toBeDefined()
+      expect(Array.isArray(results)).toBe(true)
+      expect(results.length).toBeGreaterThan(0)
+    })
+
+    it('should handle blackjack on initial deal', () => {
+      // Single hand with blackjack
+      const deckCards = [
+        card('hearts', 'A'), // Player card 1
+        card('spades', 6), // Dealer hole
+        card('clubs', 'K'), // Player card 2 (Blackjack!)
+        card('hearts', 10), // Dealer face-up
+        // Dealer hits
+        card('hearts', 2),
+        card('clubs', 2)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Should be blackjack
+      expect(engine.getState().playerHands[0].isBlackjack).toBe(true)
+
+      // Player stands on blackjack (required action)
+      engine.stand(0)
+
+      // Dealer plays
+      engine.playDealerTurn()
+      engine.resolveRound()
+
+      // Game should be over with winnings (3:2 payout)
+      expect(engine.getState().phase).toBe(GAME_PHASES.GAME_OVER)
+      // 1000 - 100 + 250 = 1150 (blackjack pays 3:2)
+      expect(engine.getState().balance).toBe(1150)
+    })
+  })
+
+  // ===========================================================================
+  // INSURANCE EDGE CASES
+  // ===========================================================================
+
+  describe('Insurance Edge Cases', () => {
+    it('should not offer insurance when dealer shows non-Ace', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 'K'), // Dealer hole (K)
+        card('clubs', 8), // Player card 2
+        card('diamonds', 10) // Dealer face-up (10, not Ace)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      expect(engine.getState().insuranceOffered).toBe(false)
+    })
+
+    it('should handle insurance loss (dealer no blackjack)', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 6), // Dealer hole (6)
+        card('clubs', 9), // Player card 2 (19)
+        card('diamonds', 'A'), // Dealer face-up (Ace - insurance offered)
+        card('hearts', 'K') // Dealer hits on soft 17, gets 17
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Insurance offered
+      expect(engine.getState().insuranceOffered).toBe(true)
+
+      // Take insurance
+      engine.takeInsurance()
+      expect(engine.getState().balance).toBe(850) // 1000 - 100 - 50
+
+      // Player stands
+      engine.stand(0)
+
+      // Dealer plays (no blackjack)
+      engine.playDealerTurn()
+      engine.resolveRound()
+
+      // Player wins main bet (19 vs 17) but loses insurance
+      // Win: 200 (bet returned + winnings)
+      // Insurance lost: 0 (already deducted)
+      // Final: 850 + 200 = 1050
+      const finalBalance = engine.getState().balance
+      expect(finalBalance).toBeGreaterThan(850) // Won main bet
+    })
+
+    it('should calculate insurance as half of first hand bet', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 'K'), // Dealer hole
+        card('clubs', 8), // Player card 2
+        card('diamonds', 'A') // Dealer face-up (Ace)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 200) // Main bet is 200
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.takeInsurance()
+
+      // Insurance bet should be 100 (half of 200)
+      expect(engine.getState().insuranceBet).toBe(100)
+      expect(engine.getState().balance).toBe(700) // 1000 - 200 - 100
+    })
+  })
+
+  // ===========================================================================
+  // BUST SCENARIOS
+  // ===========================================================================
+
+  describe('Bust Scenarios', () => {
+    it('should bust when exceeding 21', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 6), // Player card 2 (16)
+        card('diamonds', 10), // Dealer face-up
+        card('hearts', 10) // Hit card (26 - bust!)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.hit(0)
+
+      const state = engine.getState()
+      expect(state.playerHands[0].isBust).toBe(true)
+      expect(state.playerHands[0].value).toBeGreaterThan(21)
+    })
+
+    it('should auto-stand after bust', () => {
+      const deckCards = [
+        card('hearts', 10),
+        card('spades', 7),
+        card('clubs', 10),
+        card('diamonds', 10),
+        card('hearts', 10) // Bust card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.hit(0) // Bust
+
+      // Should automatically be standing (busted)
+      expect(engine.getState().playerHands[0].isStanding).toBe(true)
+    })
+
+    it('should not allow actions after bust', () => {
+      const deckCards = [
+        card('hearts', 10),
+        card('spades', 7),
+        card('clubs', 10),
+        card('diamonds', 10),
+        card('hearts', 10) // Bust card
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.hit(0) // Bust
+
+      // Further actions should fail
+      expect(engine.hit(0)).toBe(false)
+      expect(engine.doubleDown(0)).toBe(false)
+      expect(engine.stand(0)).toBe(false) // Already standing from bust
+    })
+
+    it('should dealer not play when all hands bust', () => {
+      // If all player hands bust, dealer doesn't need to play
+      const deckCards = [
+        card('hearts', 10), // H1 card 1
+        card('spades', 7), // Dealer hole
+        card('clubs', 10), // H2 card 1
+        card('diamonds', 10), // Dealer face-up
+        card('hearts', 6), // H1 card 2 (16)
+        card('clubs', 5), // H2 card 2 (15)
+        card('diamonds', 10), // H1 hit (bust)
+        card('spades', 10) // H2 hit (bust)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000, numHands: 2 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      engine.placeBet(1, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Both hands hit and bust
+      engine.hit(0)
+      engine.hit(1)
+
+      // Both should be bust
+      const state = engine.getState()
+      expect(state.playerHands[0].isBust).toBe(true)
+      expect(state.playerHands[1].isBust).toBe(true)
+
+      // Resolve - dealer doesn't need to play
+      engine.playDealerTurn()
+      const results = engine.resolveRound()
+
+      // Both hands should be losses
+      expect(results[0].outcome).toBe('lose')
+      expect(results[1].outcome).toBe('lose')
+    })
+  })
+
+  // ===========================================================================
+  // PUSH SCENARIOS
+  // ===========================================================================
+
+  describe('Push Scenarios', () => {
+    it('should push when player and dealer have same value', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 10), // Dealer hole
+        card('clubs', 8), // Player card 2 (18)
+        card('diamonds', 8) // Dealer face-up (18)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.stand(0)
+      engine.playDealerTurn()
+      const results = engine.resolveRound()
+
+      expect(results[0].outcome).toBe('push')
+      // Balance should be back to original (bet returned)
+      expect(engine.getState().balance).toBe(1000)
+    })
+
+    it('should push on 21 vs 21 (non-blackjack)', () => {
+      const deckCards = [
+        card('hearts', 10), // Player card 1
+        card('spades', 5), // Dealer hole
+        card('clubs', 5), // Player card 2 (15)
+        card('diamonds', 6), // Dealer face-up (11)
+        card('hearts', 6), // Player hit (21)
+        card('spades', 10) // Dealer gets 21
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      engine.hit(0) // Player gets 21
+      engine.stand(0)
+      engine.playDealerTurn()
+      const results = engine.resolveRound()
+
+      expect(engine.getState().playerHands[0].value).toBe(21)
+      expect(engine.getState().dealerHand.value).toBe(21)
+      expect(results[0].outcome).toBe('push')
+    })
+  })
+
+  // ===========================================================================
+  // BLACKJACK VS BLACKJACK
+  // ===========================================================================
+
+  describe('Blackjack vs Blackjack', () => {
+    it('should push when both have blackjack', () => {
+      const deckCards = [
+        card('hearts', 'A'), // Player card 1
+        card('spades', 'K'), // Dealer hole (K)
+        card('clubs', 'K'), // Player card 2 (Blackjack!)
+        card('diamonds', 'A') // Dealer face-up (Blackjack!)
+      ]
+
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      setDeterministicDeck(engine, deckCards)
+      engine.deal()
+
+      // Both have blackjack
+      expect(engine.getState().playerHands[0].isBlackjack).toBe(true)
+
+      // Decline insurance (dealer shows Ace)
+      if (engine.getState().insuranceOffered) {
+        engine.declineInsurance()
+      }
+
+      // Player stands on blackjack
+      engine.stand(0)
+
+      // Dealer plays (also has blackjack)
+      engine.playDealerTurn()
+      engine.resolveRound()
+
+      // Game should be over
+      expect(engine.getState().phase).toBe(GAME_PHASES.GAME_OVER)
+
+      // Both blackjack = push, balance should be returned
+      expect(engine.getState().balance).toBe(1000)
+    })
+  })
+
+  // ===========================================================================
+  // COMPLETE GAME FLOW
+  // ===========================================================================
+
+  describe('Complete Game Flow', () => {
+    it('should complete multiple rounds correctly', () => {
+      const engine = new GameEngine({ initialBalance: 1000 })
+
+      // Round 1
+      engine.startNewRound()
+      engine.placeBet(0, 100)
+      engine.deal()
+      if (engine.getState().insuranceOffered) {
+        engine.declineInsurance()
+      }
+      while (
+        !engine.getState().playerHands[0].isStanding &&
+        !engine.getState().playerHands[0].isBust
+      ) {
+        const value = engine.getState().playerHands[0].value
+        if (value < 17) {
+          engine.hit(0)
+        } else {
+          engine.stand(0)
+        }
+      }
+      engine.playDealerTurn()
+      engine.resolveRound()
+      expect(engine.getState().phase).toBe(GAME_PHASES.GAME_OVER)
+
+      // Round 2
+      engine.startNewRound()
+      expect(engine.getState().phase).toBe(GAME_PHASES.BETTING)
+    })
+
+    it('should track balance across multiple rounds', () => {
+      const engine = new GameEngine({ initialBalance: 500 })
+
+      // Play several rounds
+      for (let round = 0; round < 3; round++) {
+        if (engine.getState().balance < 10) break
+
+        engine.startNewRound()
+        const bet = Math.min(10, engine.getState().balance)
+        engine.placeBet(0, bet)
+        engine.deal()
+
+        if (engine.getState().insuranceOffered) {
+          engine.declineInsurance()
+        }
+
+        // Simple strategy: stand on 17+
+        const hand = engine.getState().playerHands[0]
+        if (!hand.isBlackjack && !hand.isBust) {
+          while (engine.getState().playerHands[0].value < 17) {
+            if (
+              engine.getState().playerHands[0].isBust ||
+              engine.getState().playerHands[0].isStanding
+            )
+              break
+            engine.hit(0)
+          }
+          if (!engine.getState().playerHands[0].isBust) {
+            engine.stand(0)
+          }
+        }
+
+        engine.playDealerTurn()
+        engine.resolveRound()
+      }
+
+      // Balance should have changed (win or lose)
+      expect(engine.getState().balance).not.toBe(undefined)
     })
   })
 })

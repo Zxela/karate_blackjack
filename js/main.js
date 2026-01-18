@@ -12,6 +12,7 @@
 
 import { GameEngine } from './game/GameEngine.js'
 import { GAME_PHASES } from './types/index.js'
+import { AnimationCoordinator } from './ui/AnimationCoordinator.js'
 
 // =============================================================================
 // GAME ENGINE INSTANCE
@@ -19,6 +20,12 @@ import { GAME_PHASES } from './types/index.js'
 
 /** @type {GameEngine} */
 let game = null
+
+/** @type {AnimationCoordinator} */
+let animationCoordinator = null
+
+/** @type {boolean} */
+let isAnimating = false
 
 /** @type {number} */
 let currentBet = 0
@@ -155,11 +162,16 @@ function updateUI() {
   }
 
   // Update player hands
+  // During play, show all hands from state (may have more than handCount due to splits)
+  // During betting, show based on handCount
+  const activeHandCount =
+    state.phase === GAME_PHASES.BETTING ? handCount : Math.max(handCount, state.playerHands.length)
+
   for (let i = 0; i < 3; i++) {
     const handEl = elements.playerHand(i)
     const hand = state.playerHands[i]
 
-    if (i < handCount && hand) {
+    if (i < activeHandCount && hand && hand.cards.length > 0) {
       handEl.classList.remove('hidden')
       handEl.classList.toggle(
         'active',
@@ -169,6 +181,13 @@ function updateUI() {
       renderCards(elements.playerCards(i), hand.cards)
       elements.playerValue(i).textContent = hand.value > 0 ? `${hand.value}` : '--'
       elements.playerBet(i).textContent = hand.bet > 0 ? `$${hand.bet}` : ''
+    } else if (i < handCount && state.phase === GAME_PHASES.BETTING) {
+      // During betting, show empty hand slots
+      handEl.classList.remove('hidden')
+      handEl.classList.remove('active')
+      renderCards(elements.playerCards(i), [])
+      elements.playerValue(i).textContent = '--'
+      elements.playerBet(i).textContent = ''
     } else {
       handEl.classList.add('hidden')
     }
@@ -250,10 +269,13 @@ function updateActionButtons() {
   // Can double if balance >= bet and only 2 cards
   const canDouble = state.balance >= (state.bets[activeHandIndex] || 0) && hand.cards.length === 2
 
+  // Can split if game engine allows (checks rank, balance, max hands)
+  const canSplit = game.canSplit(activeHandIndex)
+
   elements.hitButton().disabled = false
   elements.standButton().disabled = false
   elements.doubleButton().disabled = !canDouble
-  elements.splitButton().disabled = !hand.canSplit
+  elements.splitButton().disabled = !canSplit
 }
 
 /**
@@ -303,12 +325,30 @@ function displayResults(state) {
  * Adds to the current bet.
  * @param {number} amount
  */
-function addBet(amount) {
+async function addBet(amount) {
   const state = game.getState()
   if (state.phase !== GAME_PHASES.BETTING) return
+  if (isAnimating) return
 
   const maxBet = Math.min(state.balance, 1000)
-  currentBet = Math.min(currentBet + amount, maxBet)
+  const newBet = Math.min(currentBet + amount, maxBet)
+
+  // Only add chips if bet actually increased
+  if (newBet > currentBet) {
+    const chipAmount = newBet - currentBet
+
+    // Add chips to table for each hand
+    if (animationCoordinator) {
+      isAnimating = true
+      for (let i = 0; i < handCount; i++) {
+        await animationCoordinator.addChipToTable(chipAmount, i, handCount)
+      }
+      isAnimating = false
+    }
+
+    currentBet = newBet
+  }
+
   updateUI()
 }
 
@@ -317,37 +357,90 @@ function addBet(amount) {
  */
 function clearBet() {
   currentBet = 0
+
+  // Clear chips from table
+  if (animationCoordinator) {
+    animationCoordinator.clearAllChips()
+  }
+
   updateUI()
 }
 
 /**
  * Deals cards and starts the round.
  */
-function deal() {
+async function deal() {
   if (currentBet === 0) return
+  if (isAnimating) return
 
   const state = game.getState()
   if (state.phase !== GAME_PHASES.BETTING) return
 
+  isAnimating = true
+
+  // Clear previous results and rules
+  if (animationCoordinator) {
+    animationCoordinator.clearResults()
+    animationCoordinator.clearRules()
+  }
+
   // Start new round
   game.startNewRound()
 
-  // Place bets for each hand
+  // Animate bet placement for each hand
   for (let i = 0; i < handCount; i++) {
+    if (animationCoordinator) {
+      await animationCoordinator.animateBetPlacement(currentBet, i)
+    }
     game.placeBet(i, currentBet)
   }
 
   // Deal cards
   game.deal()
 
-  activeHandIndex = 0
-
-  // Check for insurance or auto-proceed
+  // Get the dealt state for animation
   const newState = game.getState()
-  if (newState.phase === GAME_PHASES.PLAYER_TURN) {
-    findActiveHand()
+
+  // Animate the initial deal
+  if (animationCoordinator) {
+    await animationCoordinator.animateInitialDeal(
+      newState.playerHands,
+      newState.dealerHand,
+      handCount,
+      updateUI
+    )
   }
 
+  activeHandIndex = 0
+
+  // Check for any blackjacks and show animations (unless dealer shows ace for insurance)
+  // dealerHand.cards[1] is the face-up card
+  const dealerShowsAce = newState.dealerHand.cards?.[1]?.rank === 'A'
+
+  if (!dealerShowsAce) {
+    // Show blackjack animations for any hands that got blackjack
+    for (let i = 0; i < handCount; i++) {
+      const hand = newState.playerHands[i]
+      if (hand?.isBlackjack && animationCoordinator) {
+        await animationCoordinator.animateHandResult(i, 'blackjack', 'BLACKJACK!')
+      }
+    }
+  }
+
+  // Check for insurance or auto-proceed
+  if (newState.phase === GAME_PHASES.PLAYER_TURN) {
+    const hasActiveHand = findActiveHand()
+
+    // If no active hands (all blackjack/bust), proceed to dealer turn
+    if (!hasActiveHand) {
+      isAnimating = false
+      updateUI()
+      await completeRoundIfNeeded()
+      return
+    }
+  }
+
+  isAnimating = false
   updateUI()
 }
 
@@ -370,23 +463,139 @@ function findActiveHand() {
  * Completes the round if in dealer turn phase.
  * Plays dealer turn and resolves the round.
  */
-function completeRoundIfNeeded() {
+async function completeRoundIfNeeded() {
   const state = game.getState()
 
   if (state.phase === GAME_PHASES.DEALER_TURN) {
-    game.playDealerTurn()
+    // Check if all player hands busted - dealer doesn't need to play
+    const allBusted = state.playerHands
+      .filter((h) => h && h.cards.length > 0)
+      .every((h) => h.isBust)
+
+    // Only animate dealer if not all players busted
+    if (!allBusted) {
+      // Get dealer's initial card count before playing
+      const initialDealerCards = state.dealerHand.cards.length
+
+      // Animate dealer hole card reveal
+      if (animationCoordinator) {
+        await animationCoordinator.animateDealerReveal(state.dealerHand)
+      }
+
+      // Update UI to show revealed hole card
+      updateUI()
+
+      // Play dealer turn (this may add cards)
+      game.playDealerTurn()
+
+      // Get state after dealer plays
+      const afterDealerState = game.getState()
+
+      // Animate any new dealer cards
+      if (animationCoordinator) {
+        for (let i = initialDealerCards; i < afterDealerState.dealerHand.cards.length; i++) {
+          await animationCoordinator.animateDealerHit(
+            afterDealerState.dealerHand.cards[i],
+            i,
+            updateUI
+          )
+        }
+      }
+    } else {
+      // All busted - just play dealer turn without animation
+      game.playDealerTurn()
+    }
+
+    // Resolve the round
     game.resolveRound()
+
+    // Animate results for each hand
+    const finalState = game.getState()
+    const results = buildResultsArray(finalState)
+
+    if (animationCoordinator) {
+      await animationCoordinator.animateGameResult(results)
+    }
   }
+}
+
+/**
+ * Builds an array of result objects for animation.
+ * @param {Object} state - Game state after resolution
+ * @returns {Array<{handIndex: number, outcome: string, message: string, payout: number, bet: number}>}
+ */
+function buildResultsArray(state) {
+  const results = []
+
+  for (let i = 0; i < state.playerHands.length; i++) {
+    const hand = state.playerHands[i]
+    if (!hand || hand.cards.length === 0) continue
+
+    let outcome = 'lose'
+    let message = ''
+    let payout = 0
+    const bet = state.bets[i] || 0
+
+    if (hand.isBust) {
+      outcome = 'bust'
+      message = 'BUST!'
+    } else if (state.dealerHand.isBust) {
+      outcome = 'win'
+      message = 'WIN!'
+      payout = bet * 2
+    } else if (hand.isBlackjack && !state.dealerHand.isBlackjack) {
+      outcome = 'blackjack'
+      message = 'BLACKJACK!'
+      payout = bet * 2.5
+    } else if (state.dealerHand.isBlackjack && !hand.isBlackjack) {
+      outcome = 'lose'
+      message = 'LOSE'
+    } else if (hand.value > state.dealerHand.value) {
+      outcome = 'win'
+      message = 'WIN!'
+      payout = bet * 2
+    } else if (hand.value < state.dealerHand.value) {
+      outcome = 'lose'
+      message = 'LOSE'
+    } else {
+      outcome = 'push'
+      message = 'PUSH'
+      payout = bet
+    }
+
+    results.push({ handIndex: i, outcome, message, payout, bet })
+  }
+
+  return results
 }
 
 /**
  * Player hits on the active hand.
  */
-function hit() {
+async function hit() {
+  if (isAnimating) return
+
+  isAnimating = true
+
+  // Get card count before hit
+  const prevState = game.getState()
+  const prevCardCount = prevState.playerHands[activeHandIndex]?.cards?.length || 0
+
   game.hit(activeHandIndex)
 
   const state = game.getState()
   const hand = state.playerHands[activeHandIndex]
+
+  // Animate the new card
+  if (animationCoordinator && hand && hand.cards.length > prevCardCount) {
+    const newCard = hand.cards[prevCardCount]
+    await animationCoordinator.animateHit(newCard, activeHandIndex, prevCardCount, updateUI)
+  }
+
+  // Show bust result immediately
+  if (hand?.isBust && animationCoordinator) {
+    await animationCoordinator.animateHandResult(activeHandIndex, 'bust', 'BUST!')
+  }
 
   // If hand busted or standing, move to next hand
   if (hand && (hand.isBust || hand.isStanding)) {
@@ -394,39 +603,79 @@ function hit() {
     findActiveHand()
   }
 
-  // Check if dealer turn should happen
-  completeRoundIfNeeded()
+  updateUI()
 
+  // Check if dealer turn should happen
+  await completeRoundIfNeeded()
+
+  isAnimating = false
   updateUI()
 }
 
 /**
  * Player stands on the active hand.
  */
-function stand() {
+async function stand() {
+  if (isAnimating) return
+
+  isAnimating = true
+
   game.stand(activeHandIndex)
 
   activeHandIndex++
   findActiveHand()
 
-  // Check if dealer turn should happen
-  completeRoundIfNeeded()
+  updateUI()
 
+  // Check if dealer turn should happen
+  await completeRoundIfNeeded()
+
+  isAnimating = false
   updateUI()
 }
 
 /**
  * Player doubles down on the active hand.
  */
-function doubleDown() {
+async function doubleDown() {
+  if (isAnimating) return
+
+  isAnimating = true
+
+  // Get card count before double
+  const prevState = game.getState()
+  const prevCardCount = prevState.playerHands[activeHandIndex]?.cards?.length || 0
+
+  // Animate additional bet placement
+  if (animationCoordinator) {
+    await animationCoordinator.animateBetPlacement(currentBet, activeHandIndex)
+  }
+
   game.doubleDown(activeHandIndex)
+
+  const state = game.getState()
+  const hand = state.playerHands[activeHandIndex]
+
+  // Animate the new card
+  if (animationCoordinator && hand && hand.cards.length > prevCardCount) {
+    const newCard = hand.cards[prevCardCount]
+    await animationCoordinator.animateHit(newCard, activeHandIndex, prevCardCount, updateUI)
+  }
+
+  // Show bust result immediately if doubled and busted
+  if (hand?.isBust && animationCoordinator) {
+    await animationCoordinator.animateHandResult(activeHandIndex, 'bust', 'BUST!')
+  }
 
   activeHandIndex++
   findActiveHand()
 
-  // Check if dealer turn should happen
-  completeRoundIfNeeded()
+  updateUI()
 
+  // Check if dealer turn should happen
+  await completeRoundIfNeeded()
+
+  isAnimating = false
   updateUI()
 }
 
@@ -441,20 +690,66 @@ function splitHand() {
 /**
  * Player takes insurance.
  */
-function takeInsurance() {
+async function takeInsurance() {
+  if (isAnimating) return
+  isAnimating = true
+
   game.takeInsurance()
   activeHandIndex = 0
-  findActiveHand()
+
+  // Show blackjack animations for any hands that got blackjack
+  const state = game.getState()
+  for (let i = 0; i < state.playerHands.length; i++) {
+    const hand = state.playerHands[i]
+    if (hand?.isBlackjack && animationCoordinator) {
+      await animationCoordinator.animateHandResult(i, 'blackjack', 'BLACKJACK!')
+    }
+  }
+
+  const hasActiveHand = findActiveHand()
+
+  // If no active hands (all blackjack/bust), proceed to dealer turn
+  if (!hasActiveHand) {
+    isAnimating = false
+    updateUI()
+    await completeRoundIfNeeded()
+    return
+  }
+
+  isAnimating = false
   updateUI()
 }
 
 /**
  * Player declines insurance.
  */
-function declineInsurance() {
+async function declineInsurance() {
+  if (isAnimating) return
+  isAnimating = true
+
   game.declineInsurance()
   activeHandIndex = 0
-  findActiveHand()
+
+  // Show blackjack animations for any hands that got blackjack
+  const state = game.getState()
+  for (let i = 0; i < state.playerHands.length; i++) {
+    const hand = state.playerHands[i]
+    if (hand?.isBlackjack && animationCoordinator) {
+      await animationCoordinator.animateHandResult(i, 'blackjack', 'BLACKJACK!')
+    }
+  }
+
+  const hasActiveHand = findActiveHand()
+
+  // If no active hands (all blackjack/bust), proceed to dealer turn
+  if (!hasActiveHand) {
+    isAnimating = false
+    updateUI()
+    await completeRoundIfNeeded()
+    return
+  }
+
+  isAnimating = false
   updateUI()
 }
 
@@ -464,8 +759,20 @@ function declineInsurance() {
 function newRound() {
   currentBet = 0
   activeHandIndex = 0
+
+  // Clear result animations and chips
+  if (animationCoordinator) {
+    animationCoordinator.clearResults()
+    animationCoordinator.clearAllChips()
+  }
+
   game.startNewRound()
   updateUI()
+
+  // Show house rules on canvas
+  if (animationCoordinator) {
+    animationCoordinator.drawRules()
+  }
 }
 
 // =============================================================================
@@ -490,7 +797,21 @@ function setupEventListeners() {
       }
       e.currentTarget.classList.add('active')
       e.currentTarget.setAttribute('aria-pressed', 'true')
-      handCount = Number.parseInt(e.currentTarget.dataset.hands)
+
+      const newHandCount = Number.parseInt(e.currentTarget.dataset.hands)
+
+      // Clear chips if hand count changed (chips would need repositioning)
+      if (newHandCount !== handCount && animationCoordinator) {
+        animationCoordinator.clearAllChips()
+        currentBet = 0
+      }
+
+      handCount = newHandCount
+
+      if (animationCoordinator) {
+        animationCoordinator.setHandCount(handCount)
+      }
+
       updateUI()
     })
   }
@@ -530,6 +851,13 @@ function initializeGame() {
     maxBet: 1000
   })
 
+  // Initialize animation coordinator
+  const canvas = document.getElementById('gameCanvas')
+  if (canvas) {
+    animationCoordinator = new AnimationCoordinator(canvas, elements)
+    console.log('Animation system initialized')
+  }
+
   // Start in betting phase
   game.startNewRound()
 
@@ -538,6 +866,11 @@ function initializeGame() {
 
   // Initial UI update
   updateUI()
+
+  // Show house rules on canvas
+  if (animationCoordinator) {
+    animationCoordinator.drawRules()
+  }
 
   console.log('=== Game Ready ===')
 }

@@ -9,6 +9,10 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:coverage:fresh": "vitest run --coverage --clearCache",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:ui": "playwright test --ui",
+    "serve": "serve -l 3000",
     "check": "biome check .",
     "check:fix": "biome check --write .",
     "format": "biome format --write .",
@@ -20,7 +24,9 @@
   "license": "MIT",
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",
+    "@playwright/test": "^1.57.0",
     "@vitest/coverage-v8": "^2.1.0",
+    "serve": "^14.2.5",
     "vitest": "^2.1.0"
   }
 }

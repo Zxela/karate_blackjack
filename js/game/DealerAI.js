@@ -4,9 +4,10 @@
  * This module provides automated dealer decision logic following standard
  * casino blackjack rules. The dealer follows a deterministic strategy:
  * - Hit on 16 or less
- * - Stand on 17 or more (including soft 17)
+ * - Hit on soft 17 (Ace counted as 11 + 6)
+ * - Stand on hard 17 or more
  *
- * Standard casino rule applied: Dealer stands on all 17s (including soft 17).
+ * Standard Vegas rule applied: Dealer hits on soft 17 (H17).
  *
  * @module game/DealerAI
  * @version 1.0.0
@@ -21,12 +22,11 @@
  *
  * The DealerAI follows standard casino dealer rules:
  * - Dealer must hit when hand value is 16 or less
- * - Dealer must stand when hand value is 17 or more
- * - Soft 17 rule: Dealer stands on soft 17 (Ace + 6)
+ * - Dealer must hit on soft 17 (Ace counted as 11)
+ * - Dealer must stand on hard 17 or more
  *
- * This implementation uses the "stand on all 17s" rule, which is the most
- * common rule in casinos. Some casinos use "hit on soft 17" which would
- * give the house a slightly higher edge.
+ * This implementation uses the "hit on soft 17" (H17) rule, which is common
+ * in Las Vegas casinos and gives the house a slightly higher edge.
  *
  * @class DealerAI
  *
@@ -52,7 +52,8 @@ export class DealerAI {
    *
    * Dealer hit/stand rules:
    * - Value <= 16: Always hit
-   * - Value >= 17: Always stand (including soft 17)
+   * - Soft 17: Hit (H17 rule)
+   * - Hard 17+: Stand
    * - Bust (value > 21): Stand (no further action possible)
    *
    * @param {import('./Hand.js').Hand} hand - The dealer's current hand
@@ -66,18 +67,18 @@ export class DealerAI {
    * dealerAI.shouldHit(hand) // true
    *
    * @example
-   * // Dealer stands on 17
+   * // Dealer stands on hard 17
    * const hand = new Hand()
    * hand.addCard(createCard('hearts', 10))
    * hand.addCard(createCard('diamonds', 7))
    * dealerAI.shouldHit(hand) // false
    *
    * @example
-   * // Dealer stands on soft 17 (A + 6)
+   * // Dealer hits on soft 17 (A + 6)
    * const hand = new Hand()
    * hand.addCard(createCard('hearts', 'A'))
    * hand.addCard(createCard('diamonds', 6))
-   * dealerAI.shouldHit(hand) // false
+   * dealerAI.shouldHit(hand) // true
    */
   shouldHit(hand) {
     const value = hand.getValue()
@@ -87,9 +88,18 @@ export class DealerAI {
       return false
     }
 
-    // Standard dealer rule: hit on 16 or less, stand on 17 or more
-    // This includes standing on soft 17 (the standard casino rule)
-    return value <= 16
+    // Hit on 16 or less
+    if (value <= 16) {
+      return true
+    }
+
+    // Hit on soft 17 (H17 rule)
+    if (value === 17 && hand.isSoft()) {
+      return true
+    }
+
+    // Stand on hard 17 or more
+    return false
   }
 
   /**

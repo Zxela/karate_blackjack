@@ -589,17 +589,18 @@ export class GameEngine {
       }
 
       // Deal to dealer
-      if (round === 0 && this._testDealerShowsAce) {
-        // For testing: force Ace as first dealer card
+      if (round === 1 && this._testDealerShowsAce) {
+        // For testing: force Ace as face-up card (cards[1]) for insurance testing
         this._dealerHand.addCard(this._findAceInDeck() || this._deck.deal())
       } else {
         this._dealCardToHand(this._dealerHand)
       }
     }
 
-    // Check for insurance opportunity
+    // Check for insurance opportunity (dealer's face-up card is Ace)
+    // dealerCards[0] is hole card (face down), dealerCards[1] is face-up card
     const dealerCards = this._dealerHand.getCards()
-    if (dealerCards.length > 0 && dealerCards[0].rank === 'A') {
+    if (dealerCards.length > 1 && dealerCards[1].rank === 'A') {
       this._insuranceOffered = true
     }
 

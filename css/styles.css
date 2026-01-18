@@ -343,6 +343,88 @@ ol {
   gap: var(--space-sm);
 }
 
+.dealer-area {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xl);
+  justify-content: center;
+}
+
+.dealer-hand-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Deck Display */
+.deck-display {
+  position: relative;
+  perspective: 800px;
+}
+
+.deck-stack {
+  position: relative;
+  width: var(--card-width);
+  height: var(--card-height);
+}
+
+.deck-card {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  background: var(--color-card-back);
+  border: 2px solid var(--color-accent-dark);
+  overflow: hidden;
+}
+
+.deck-card::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-dark) 0%,
+    var(--color-primary) 50%,
+    var(--color-primary-dark) 100%
+  );
+  border: 1px solid var(--color-accent);
+}
+
+/* Karate logo on deck cards */
+.deck-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  transform: translate(-50%, -50%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4af37'%3E%3C!-- Karate figure silhouette --%3E%3Cpath d='M50 10 L55 15 L55 25 L60 30 L75 25 L80 30 L65 40 L60 38 L58 50 L70 65 L68 70 L55 58 L52 75 L55 95 L50 95 L48 75 L45 58 L32 70 L30 65 L42 50 L40 38 L35 40 L20 30 L25 25 L40 30 L45 25 L45 15 Z'/%3E%3C!-- Belt --%3E%3Crect x='40' y='48' width='20' height='4' rx='1'/%3E%3C/g%3E%3C!-- Circle border --%3E%3Ccircle cx='50' cy='50' r='45' stroke='%23d4af37' stroke-width='3' fill='none'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.9;
+}
+
+.deck-card-1 {
+  z-index: 3;
+  transform: rotate(-1deg);
+}
+
+.deck-card-2 {
+  z-index: 2;
+  transform: translate(3px, 3px) rotate(1deg);
+}
+
+.deck-card-3 {
+  z-index: 1;
+  transform: translate(6px, 6px) rotate(2deg);
+}
+
 .hand-info {
   display: flex;
   align-items: center;
@@ -425,6 +507,8 @@ ol {
   flex-direction: column;
   align-items: center;
   gap: var(--space-md);
+  padding-bottom: var(--space-xl);
+  overflow: visible;
 }
 
 .player-hands {
@@ -433,6 +517,8 @@ ol {
   gap: var(--space-lg);
   flex-wrap: wrap;
   width: 100%;
+  overflow: visible;
+  padding-bottom: 40px;
 }
 
 .player-hand {
@@ -851,13 +937,172 @@ ol {
 }
 
 .card.face-down {
-  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-secondary));
+  background: var(--color-card-back);
   border-color: var(--color-accent-dark);
+  overflow: hidden;
+}
+
+.card.face-down::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary-dark) 0%,
+    var(--color-primary) 50%,
+    var(--color-primary-dark) 100%
+  );
+  border: 1px solid var(--color-accent);
+}
+
+/* Karate logo on face-down cards */
+.card.face-down::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60%;
+  height: 60%;
+  transform: translate(-50%, -50%);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg fill='%23d4af37'%3E%3Cpath d='M50 10 L55 15 L55 25 L60 30 L75 25 L80 30 L65 40 L60 38 L58 50 L70 65 L68 70 L55 58 L52 75 L55 95 L50 95 L48 75 L45 58 L32 70 L30 65 L42 50 L40 38 L35 40 L20 30 L25 25 L40 30 L45 25 L45 15 Z'/%3E%3Crect x='40' y='48' width='20' height='4' rx='1'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='45' stroke='%23d4af37' stroke-width='3' fill='none'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.9;
+  z-index: 1;
 }
 
 .card-back {
-  font-size: clamp(2rem, 6vw, 3rem);
+  /* Hidden since we use ::after for the logo now */
+  display: none;
+}
+
+/* =============================================================================
+   HAND RESULT DISPLAYS
+   ============================================================================= */
+
+.hand-result {
+  position: absolute;
+  bottom: -35px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  white-space: nowrap;
+  z-index: var(--z-cards);
+}
+
+.hand-result.show {
+  opacity: 1;
+}
+
+.hand-result.win {
+  color: var(--color-success);
+}
+
+.hand-result.blackjack {
   color: var(--color-accent);
+  font-size: var(--font-size-xl);
+  animation: blackjackPulse 0.6s ease-in-out;
+}
+
+.hand-result.lose,
+.hand-result.bust {
+  color: var(--color-danger);
+}
+
+.hand-result.push {
+  color: var(--color-warning);
+}
+
+/* Hand result glow effects */
+.player-hand.result-win {
+  box-shadow: 0 0 20px rgba(40, 167, 69, 0.6);
+  animation: winGlow 0.5s ease-in-out;
+}
+
+.player-hand.result-blackjack {
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.8);
+  animation: blackjackGlow 0.8s ease-in-out;
+}
+
+.player-hand.result-lose {
+  box-shadow: 0 0 15px rgba(220, 53, 69, 0.5);
+  animation: loseShake 0.4s ease-in-out;
+}
+
+.player-hand.result-push {
+  box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+}
+
+/* Player hand needs position relative for absolute result element */
+.player-hand {
+  position: relative;
+}
+
+@keyframes winGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(40, 167, 69, 0);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(40, 167, 69, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(40, 167, 69, 0.6);
+  }
+}
+
+@keyframes blackjackGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 1);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.8);
+    transform: scale(1);
+  }
+}
+
+@keyframes blackjackPulse {
+  0% {
+    transform: translateX(-50%) scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: translateX(-50%) scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes loseShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
 }
 
 /* =============================================================================

@@ -718,7 +718,8 @@ describe('GameEngine', () => {
         const state = testEngine.getState()
         if (state.insuranceOffered) {
           insuranceOffered = true
-          expect(state.dealerHand.cards[0].rank).toBe('A')
+          // Insurance is offered when face-up card (cards[1]) is Ace
+          expect(state.dealerHand.cards[1].rank).toBe('A')
         }
       }
       // Test passes if insurance was offered at least once, or we accept that

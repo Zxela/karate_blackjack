@@ -42,12 +42,24 @@
       <div class="game-table">
         <!-- Dealer Section -->
         <section class="dealer-section" aria-label="Dealer's hand">
-          <div class="hand-info">
-            <span class="hand-label">Dealer</span>
-            <span class="hand-value" id="dealerValue">--</span>
-          </div>
-          <div class="dealer-hand card-container" id="dealerHand">
-            <!-- Dealer cards rendered here -->
+          <div class="dealer-area">
+            <div class="dealer-hand-container">
+              <div class="hand-info">
+                <span class="hand-label">Dealer</span>
+                <span class="hand-value" id="dealerValue">--</span>
+              </div>
+              <div class="dealer-hand card-container" id="dealerHand">
+                <!-- Dealer cards rendered here -->
+              </div>
+            </div>
+            <!-- Deck display -->
+            <div class="deck-display" id="deckDisplay" aria-label="Card deck">
+              <div class="deck-stack">
+                <div class="deck-card deck-card-3"></div>
+                <div class="deck-card deck-card-2"></div>
+                <div class="deck-card deck-card-1"></div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -72,6 +84,7 @@
               <div class="card-container" id="playerCards0">
                 <!-- Player cards rendered here -->
               </div>
+              <div class="hand-result" id="handResult0"></div>
             </div>
 
             <!-- Hand 2 (hidden by default) -->
@@ -84,6 +97,7 @@
               <div class="card-container" id="playerCards1">
                 <!-- Player cards rendered here -->
               </div>
+              <div class="hand-result" id="handResult1"></div>
             </div>
 
             <!-- Hand 3 (hidden by default) -->
@@ -96,6 +110,7 @@
               <div class="card-container" id="playerCards2">
                 <!-- Player cards rendered here -->
               </div>
+              <div class="hand-result" id="handResult2"></div>
             </div>
           </div>
         </section>

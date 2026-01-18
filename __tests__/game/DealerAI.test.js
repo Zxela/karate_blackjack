@@ -3,7 +3,7 @@
  *
  * Tests cover:
  * - shouldHit() decision logic at all boundary values
- * - Soft 17 handling (standard rule: stand on soft 17)
+ * - Soft 17 handling (H17 rule: hit on soft 17)
  * - Hard 17 handling (always stand)
  * - play() method full dealer turn execution
  * - Edge cases and bust scenarios
@@ -162,33 +162,33 @@ describe('DealerAI', () => {
     })
   })
 
-  describe('shouldHit - soft 17 handling (standard rule: stand)', () => {
-    it('returns false for soft 17 (A + 6)', () => {
+  describe('shouldHit - soft 17 handling (H17 rule: hit)', () => {
+    it('returns true for soft 17 (A + 6)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 'A'))
       hand.addCard(createCard('diamonds', 6))
       expect(hand.getValue()).toBe(17)
       expect(hand.isSoft()).toBe(true)
-      expect(dealerAI.shouldHit(hand)).toBe(false)
+      expect(dealerAI.shouldHit(hand)).toBe(true)
     })
 
-    it('returns false for soft 17 (6 + A)', () => {
+    it('returns true for soft 17 (6 + A)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 6))
       hand.addCard(createCard('diamonds', 'A'))
       expect(hand.getValue()).toBe(17)
       expect(hand.isSoft()).toBe(true)
-      expect(dealerAI.shouldHit(hand)).toBe(false)
+      expect(dealerAI.shouldHit(hand)).toBe(true)
     })
 
-    it('returns false for soft 17 (A + 2 + 4)', () => {
+    it('returns true for soft 17 (A + 2 + 4)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 'A'))
       hand.addCard(createCard('diamonds', 2))
       hand.addCard(createCard('clubs', 4))
       expect(hand.getValue()).toBe(17)
       expect(hand.isSoft()).toBe(true)
-      expect(dealerAI.shouldHit(hand)).toBe(false)
+      expect(dealerAI.shouldHit(hand)).toBe(true)
     })
   })
 
@@ -348,19 +348,19 @@ describe('DealerAI', () => {
       expect(hand.getValue()).toBe(17)
     })
 
-    it('stands immediately on soft 17', () => {
+    it('hits on soft 17 (H17 rule)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 'A'))
-      hand.addCard(createCard('diamonds', 6))
+      hand.addCard(createCard('diamonds', 6)) // soft 17
 
       const mockDeck = {
-        deal: vi.fn()
+        deal: vi.fn().mockReturnValueOnce(createCard('clubs', 2)) // soft 19
       }
 
       dealerAI.playTurn(hand, mockDeck)
 
-      expect(mockDeck.deal).not.toHaveBeenCalled()
-      expect(hand.getValue()).toBe(17)
+      expect(mockDeck.deal).toHaveBeenCalledTimes(1)
+      expect(hand.getValue()).toBe(19)
     })
 
     it('hits on 16 and stands when reaching 17+', () => {
@@ -496,7 +496,7 @@ describe('DealerAI', () => {
       expect(hand.isSoft()).toBe(false)
     })
 
-    it('handles multiple hits with aces', () => {
+    it('handles multiple hits with aces (H17 rule)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 'A'))
       hand.addCard(createCard('diamonds', 2)) // soft 13
@@ -505,13 +505,14 @@ describe('DealerAI', () => {
         deal: vi
           .fn()
           .mockReturnValueOnce(createCard('clubs', 'A')) // soft 14 (A11+2+A1)
-          .mockReturnValueOnce(createCard('spades', 3)) // soft 17 (A11+2+A1+3)
+          .mockReturnValueOnce(createCard('spades', 3)) // soft 17 (A11+2+A1+3) - hits again per H17
+          .mockReturnValueOnce(createCard('hearts', 2)) // soft 19 (A11+2+A1+3+2)
       }
 
       dealerAI.playTurn(hand, mockDeck)
 
-      expect(mockDeck.deal).toHaveBeenCalledTimes(2)
-      expect(hand.getValue()).toBe(17)
+      expect(mockDeck.deal).toHaveBeenCalledTimes(3)
+      expect(hand.getValue()).toBe(19)
       expect(hand.isSoft()).toBe(true)
     })
 
@@ -562,13 +563,13 @@ describe('DealerAI', () => {
       expect(dealerAI.shouldHit(hand)).toBe(true)
     })
 
-    it('correctly reads soft status', () => {
+    it('correctly reads soft status (H17 rule)', () => {
       const hand = new Hand()
       hand.addCard(createCard('hearts', 'A'))
       hand.addCard(createCard('diamonds', 6))
       expect(hand.isSoft()).toBe(true)
       expect(hand.getValue()).toBe(17)
-      expect(dealerAI.shouldHit(hand)).toBe(false)
+      expect(dealerAI.shouldHit(hand)).toBe(true) // H17 rule: hit on soft 17
     })
 
     it('correctly reads bust status', () => {
