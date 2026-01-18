@@ -25,9 +25,19 @@
     <!-- Header Section -->
     <header class="game-header">
       <h1 class="game-title">Karate Blackjack</h1>
-      <div class="balance-display" id="balanceDisplay">
-        <span class="balance-label">Balance:</span>
-        <span class="balance-amount" id="balanceAmount">$1000</span>
+      <div class="header-controls">
+        <div class="volume-control" id="volumeControl">
+          <button type="button" class="btn-volume-toggle" id="volumeToggle" aria-label="Toggle sound">
+            <span class="volume-icon" id="volumeIcon" aria-hidden="true"></span>
+          </button>
+          <input type="range" class="volume-slider" id="volumeSlider"
+                 min="0" max="100" value="70"
+                 aria-label="Volume level">
+        </div>
+        <div class="balance-display" id="balanceDisplay">
+          <span class="balance-label">Balance:</span>
+          <span class="balance-amount" id="balanceAmount">$1000</span>
+        </div>
       </div>
     </header>
 

@@ -10,6 +10,7 @@
  * @version 1.0.0
  */
 
+import { audioManager } from './audio/AudioManager.js'
 import { GameEngine } from './game/GameEngine.js'
 import { GAME_PHASES } from './types/index.js'
 import { AnimationCoordinator } from './ui/AnimationCoordinator.js'
@@ -46,6 +47,12 @@ let isDealingAnimation = false
 const elements = {
   // Balance
   balanceAmount: () => document.getElementById('balanceAmount'),
+
+  // Volume controls
+  volumeControl: () => document.getElementById('volumeControl'),
+  volumeToggle: () => document.getElementById('volumeToggle'),
+  volumeSlider: () => document.getElementById('volumeSlider'),
+  volumeIcon: () => document.getElementById('volumeIcon'),
 
   // Message
   messageText: () => document.getElementById('messageText'),
@@ -242,6 +249,8 @@ function updatePhaseUI(state) {
     case GAME_PHASES.INSURANCE_CHECK:
       elements.insuranceControls().classList.remove('hidden')
       messageEl.textContent = 'Dealer shows Ace - Insurance?'
+      // Play insurance offer alert sound
+      audioManager.play('insuranceOffer')
       break
 
     case GAME_PHASES.DEALER_TURN:
@@ -348,6 +357,9 @@ async function addBet(amount) {
   if (newBet > currentBet) {
     const chipAmount = newBet - currentBet
 
+    // Play chip sound
+    audioManager.play('chipPlace')
+
     // Add chips to table for each hand
     if (animationCoordinator) {
       isAnimating = true
@@ -367,6 +379,10 @@ async function addBet(amount) {
  * Clears the current bet.
  */
 function clearBet() {
+  if (currentBet > 0) {
+    audioManager.play('buttonClick')
+  }
+
   currentBet = 0
 
   // Clear chips from table
@@ -388,6 +404,9 @@ async function deal() {
   if (state.phase !== GAME_PHASES.BETTING) return
 
   isAnimating = true
+
+  // Play "FIGHT!" sound for new round
+  audioManager.play('newRound')
 
   // Clear previous results and rules
   if (animationCoordinator) {
@@ -492,6 +511,8 @@ async function completeRoundIfNeeded() {
 
       // Animate dealer hole card reveal
       if (animationCoordinator) {
+        // Play dramatic reveal sound
+        audioManager.play('dealerReveal')
         await animationCoordinator.animateDealerReveal(state.dealerHand)
       }
 
@@ -527,8 +548,54 @@ async function completeRoundIfNeeded() {
     const results = buildResultsArray(finalState)
 
     if (animationCoordinator) {
-      await animationCoordinator.animateGameResult(results)
+      // Play appropriate sounds for each result as they animate
+      await animateResultsWithSound(results)
     }
+  }
+}
+
+/**
+ * Animates results with synchronized sounds.
+ * @param {Array} results - Array of result objects
+ */
+async function animateResultsWithSound(results) {
+  for (const result of results) {
+    // Play sound based on outcome
+    playResultSound(result.outcome)
+
+    // Animate the result
+    await animationCoordinator.animateHandResult(result.handIndex, result.outcome, result.message)
+
+    // Animate chip movement based on outcome
+    if (result.outcome === 'win' || result.outcome === 'blackjack') {
+      await animationCoordinator.animateWinPayout(result.payout || 0, result.handIndex)
+    } else if (result.outcome === 'lose' || result.outcome === 'bust') {
+      await animationCoordinator.animateLoss(result.bet || 0, result.handIndex)
+    } else if (result.outcome === 'push') {
+      // Push - chips stay, just clear them
+      animationCoordinator.clearHandChips(result.handIndex)
+    }
+
+    // Small delay between hands
+    await new Promise((resolve) => setTimeout(resolve, 300))
+  }
+}
+
+/**
+ * Plays the appropriate sound for a game result.
+ * @param {string} outcome - The result outcome
+ */
+function playResultSound(outcome) {
+  const soundMap = {
+    win: 'win',
+    blackjack: 'blackjack',
+    push: 'push',
+    bust: 'bust',
+    lose: 'lose'
+  }
+  const sound = soundMap[outcome]
+  if (sound) {
+    audioManager.play(sound)
   }
 }
 
@@ -590,6 +657,9 @@ async function hit() {
 
   isAnimating = true
 
+  // Play hit (punch) sound
+  audioManager.play('hit')
+
   // Get card count before hit
   const prevState = game.getState()
   const prevCardCount = prevState.playerHands[activeHandIndex]?.cards?.length || 0
@@ -633,6 +703,9 @@ async function stand() {
 
   isAnimating = true
 
+  // Play stand (block) sound
+  audioManager.play('stand')
+
   game.stand(activeHandIndex)
 
   activeHandIndex++
@@ -654,6 +727,9 @@ async function doubleDown() {
   if (isAnimating) return
 
   isAnimating = true
+
+  // Play double down power-up sound
+  audioManager.play('doubleDown')
 
   // Get card count before double
   const prevState = game.getState()
@@ -696,6 +772,9 @@ async function doubleDown() {
  * Player splits the active hand.
  */
 function splitHand() {
+  // Play split (chop) sound
+  audioManager.play('split')
+
   game.split(activeHandIndex)
   updateUI()
 }
@@ -706,6 +785,9 @@ function splitHand() {
 async function takeInsurance() {
   if (isAnimating) return
   isAnimating = true
+
+  // Play insurance accept sound
+  audioManager.play('insuranceAccept')
 
   game.takeInsurance()
   activeHandIndex = 0
@@ -739,6 +821,9 @@ async function takeInsurance() {
 async function declineInsurance() {
   if (isAnimating) return
   isAnimating = true
+
+  // Play insurance decline sound
+  audioManager.play('insuranceDecline')
 
   game.declineInsurance()
   activeHandIndex = 0
@@ -847,6 +932,72 @@ function setupEventListeners() {
 
   // New round button
   elements.newRoundButton().addEventListener('click', newRound)
+
+  // Volume control setup
+  setupVolumeControls()
+}
+
+/**
+ * Sets up volume control event listeners.
+ */
+function setupVolumeControls() {
+  const volumeControl = elements.volumeControl()
+  const volumeToggle = elements.volumeToggle()
+  const volumeSlider = elements.volumeSlider()
+
+  if (!volumeToggle || !volumeSlider || !volumeControl) return
+
+  // Initialize UI from saved settings
+  updateVolumeUI()
+
+  // Volume slider change
+  volumeSlider.addEventListener('input', (e) => {
+    const volume = Number.parseInt(e.target.value) / 100
+    audioManager.setVolume(volume)
+    updateVolumeUI()
+  })
+
+  // Mute toggle button
+  volumeToggle.addEventListener('click', () => {
+    // Initialize audio on first interaction if needed
+    if (!audioManager.isInitialized()) {
+      audioManager.init()
+    }
+
+    audioManager.toggleMute()
+    updateVolumeUI()
+
+    // Play feedback sound if unmuting
+    if (!audioManager.isMuted()) {
+      audioManager.play('buttonClick')
+    }
+  })
+}
+
+/**
+ * Updates the volume control UI to reflect current state.
+ */
+function updateVolumeUI() {
+  const volumeControl = elements.volumeControl()
+  const volumeSlider = elements.volumeSlider()
+
+  if (!volumeControl || !volumeSlider) return
+
+  const volume = audioManager.getVolume()
+  const muted = audioManager.isMuted()
+
+  // Update slider
+  volumeSlider.value = Math.round(volume * 100)
+
+  // Update CSS custom property for track fill
+  volumeSlider.style.setProperty('--volume-percent', `${volume * 100}%`)
+
+  // Update muted state
+  if (muted) {
+    volumeControl.classList.add('muted')
+  } else {
+    volumeControl.classList.remove('muted')
+  }
 }
 
 // =============================================================================
@@ -877,6 +1028,16 @@ function initializeGame() {
   // Set up event listeners
   setupEventListeners()
 
+  // Initialize audio on first user interaction (required by browser autoplay policies)
+  const initAudioOnFirstInteraction = () => {
+    if (!audioManager.isInitialized()) {
+      audioManager.init()
+      console.log('Audio system initialized')
+    }
+  }
+  document.addEventListener('click', initAudioOnFirstInteraction, { once: true })
+  document.addEventListener('keydown', initAudioOnFirstInteraction, { once: true })
+
   // Initial UI update
   updateUI()
 
@@ -895,6 +1056,16 @@ function initializeGame() {
     getState: () => game.getState(),
     startNewRound: () => {
       newRound()
+    },
+    getAudioManager: () => audioManager,
+    setVolume: (level) => {
+      audioManager.setVolume(level)
+      updateVolumeUI()
+    },
+    toggleMute: () => {
+      audioManager.toggleMute()
+      updateVolumeUI()
+      return audioManager.isMuted()
     }
   }
 }

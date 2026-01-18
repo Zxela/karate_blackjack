@@ -9,6 +9,8 @@
  * @version 1.0.0
  */
 
+import { audioManager } from '../audio/AudioManager.js'
+
 // =============================================================================
 // CONSTANTS
 // =============================================================================
@@ -578,6 +580,9 @@ export class AnimationCoordinator {
    * @private
    */
   async _animateCardDeal(card, targetPos, cardIndex, faceUp) {
+    // Play card deal sound (karate chop swoosh)
+    audioManager.play('cardDeal')
+
     const startX = POSITIONS.DECK.x
     const startY = POSITIONS.DECK.y
     const endX = targetPos.x + cardIndex * (CARD_DIMS.WIDTH - CARD_DIMS.OVERLAP)

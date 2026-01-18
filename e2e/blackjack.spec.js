@@ -673,4 +673,205 @@ test.describe('Karate Blackjack Game', () => {
       expect(dealerValue).not.toBe('--')
     })
   })
+
+  test.describe('Volume Controls', () => {
+    test('volume control is visible in header', async ({ page }) => {
+      const volumeControl = page.locator('#volumeControl')
+      await expect(volumeControl).toBeVisible()
+    })
+
+    test('volume toggle button exists', async ({ page }) => {
+      const volumeToggle = page.locator('#volumeToggle')
+      await expect(volumeToggle).toBeVisible()
+    })
+
+    test('volume slider exists', async ({ page }) => {
+      const volumeSlider = page.locator('#volumeSlider')
+      await expect(volumeSlider).toBeVisible()
+    })
+
+    test('volume slider has default value', async ({ page }) => {
+      const volumeSlider = page.locator('#volumeSlider')
+      const value = await volumeSlider.inputValue()
+      // Default volume is 70%
+      expect(Number.parseInt(value)).toBe(70)
+    })
+
+    test('clicking mute button toggles muted state', async ({ page }) => {
+      const volumeControl = page.locator('#volumeControl')
+      const volumeToggle = page.locator('#volumeToggle')
+
+      // Initially not muted
+      await expect(volumeControl).not.toHaveClass(/muted/)
+
+      // Click to mute
+      await volumeToggle.click()
+      await expect(volumeControl).toHaveClass(/muted/)
+
+      // Click to unmute
+      await volumeToggle.click()
+      await expect(volumeControl).not.toHaveClass(/muted/)
+    })
+
+    test('volume slider changes volume level', async ({ page }) => {
+      const volumeSlider = page.locator('#volumeSlider')
+
+      // Change slider value
+      await volumeSlider.fill('30')
+
+      // Verify value changed
+      const newValue = await volumeSlider.inputValue()
+      expect(Number.parseInt(newValue)).toBe(30)
+    })
+
+    test('muting adds muted class to control', async ({ page }) => {
+      const volumeControl = page.locator('#volumeControl')
+      const volumeToggle = page.locator('#volumeToggle')
+
+      await volumeToggle.click()
+      await expect(volumeControl).toHaveClass(/muted/)
+    })
+
+    test('volume icon changes when muted', async ({ page }) => {
+      const volumeToggle = page.locator('#volumeToggle')
+      const volumeControl = page.locator('#volumeControl')
+
+      // Click to mute
+      await volumeToggle.click()
+
+      // Control should have muted class
+      await expect(volumeControl).toHaveClass(/muted/)
+    })
+
+    test('audio manager is accessible via test API', async ({ page }) => {
+      // Click first to trigger audio init
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      const audioManager = await page.evaluate(() => {
+        const am = window.__TEST_API__.getAudioManager()
+        return {
+          isAvailable: am.isAvailable(),
+          volume: am.getVolume(),
+          muted: am.isMuted()
+        }
+      })
+
+      expect(audioManager.isAvailable).toBe(true)
+      expect(typeof audioManager.volume).toBe('number')
+      expect(typeof audioManager.muted).toBe('boolean')
+    })
+
+    test('can set volume via test API', async ({ page }) => {
+      // First click to ensure audio is initialized
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      await page.evaluate(() => {
+        window.__TEST_API__.setVolume(0.5)
+      })
+
+      const volume = await page.evaluate(() => {
+        return window.__TEST_API__.getAudioManager().getVolume()
+      })
+
+      expect(volume).toBe(0.5)
+
+      // Slider should also update
+      const sliderValue = await page.locator('#volumeSlider').inputValue()
+      expect(Number.parseInt(sliderValue)).toBe(50)
+    })
+
+    test('can toggle mute via test API', async ({ page }) => {
+      // First click to ensure audio is initialized
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      // Toggle mute
+      const newMutedState = await page.evaluate(() => {
+        return window.__TEST_API__.toggleMute()
+      })
+
+      expect(newMutedState).toBe(true)
+
+      // UI should update
+      const volumeControl = page.locator('#volumeControl')
+      await expect(volumeControl).toHaveClass(/muted/)
+    })
+
+    test('volume persists across page reload', async ({ page }) => {
+      // Click first to trigger audio init
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      // Set volume
+      await page.evaluate(() => {
+        window.__TEST_API__.setVolume(0.3)
+      })
+
+      // Reload page
+      await page.reload()
+      await expect(page.locator('#balanceAmount')).toContainText('$1000')
+
+      // Click to init audio again
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      // Check volume was persisted
+      const volume = await page.evaluate(() => {
+        return window.__TEST_API__.getAudioManager().getVolume()
+      })
+
+      expect(volume).toBe(0.3)
+    })
+
+    test('muted state persists across page reload', async ({ page }) => {
+      // Click first to trigger audio init
+      await page.click('[data-bet="10"]')
+      await page.waitForTimeout(100)
+
+      // Mute
+      await page.evaluate(() => {
+        window.__TEST_API__.toggleMute()
+      })
+
+      // Reload page
+      await page.reload()
+      await expect(page.locator('#balanceAmount')).toContainText('$1000')
+
+      // Check UI reflects muted state
+      const volumeControl = page.locator('#volumeControl')
+      await expect(volumeControl).toHaveClass(/muted/)
+    })
+
+    test('volume slider hidden on small viewport', async ({ page }) => {
+      // Set small viewport
+      await page.setViewportSize({ width: 375, height: 667 })
+      await page.reload()
+      await expect(page.locator('#balanceAmount')).toContainText('$1000')
+
+      // Volume toggle should still be visible
+      await expect(page.locator('#volumeToggle')).toBeVisible()
+
+      // Volume slider should be hidden on small screens (< 480px)
+      const volumeSlider = page.locator('#volumeSlider')
+      // CSS hides it at max-width: 480px, 375px is below that
+      await expect(volumeSlider).toBeHidden()
+    })
+
+    test('volume toggle works on small viewport', async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 667 })
+      await page.reload()
+      await expect(page.locator('#balanceAmount')).toContainText('$1000')
+
+      const volumeToggle = page.locator('#volumeToggle')
+      const volumeControl = page.locator('#volumeControl')
+
+      await volumeToggle.click()
+      await expect(volumeControl).toHaveClass(/muted/)
+
+      await volumeToggle.click()
+      await expect(volumeControl).not.toHaveClass(/muted/)
+    })
+  })
 })
