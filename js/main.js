@@ -734,8 +734,7 @@ async function addBet(amount) {
 
   // Max bet per hand is limited by total balance divided by number of hands
   const maxBetPerHand = Math.floor(state.balance / handCount)
-  const maxBet = Math.min(maxBetPerHand, 1000)
-  const newBet = Math.min(currentBet + amount, maxBet)
+  const newBet = Math.min(currentBet + amount, maxBetPerHand)
 
   // Only add chips if bet actually increased
   if (newBet > currentBet) {
@@ -1753,8 +1752,7 @@ function initializeGame() {
   game = new GameEngine({
     initialBalance: 1000,
     deckCount: 6,
-    minBet: 10,
-    maxBet: 1000
+    minBet: 10
   })
 
   // Initialize animation coordinator

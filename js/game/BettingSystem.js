@@ -132,15 +132,16 @@ export class BettingSystem {
 
   /**
    * Returns the maximum allowed bet amount.
+   * Max bet is dynamically based on current balance.
    *
-   * @returns {number} Maximum bet limit
+   * @returns {number} Maximum bet limit (equals current balance)
    *
    * @example
-   * const betting = new BettingSystem(1000, 10, 1000)
-   * console.log(betting.getMaxBet()) // 1000
+   * const betting = new BettingSystem(1000, 10)
+   * console.log(betting.getMaxBet()) // 1000 (equals balance)
    */
   getMaxBet() {
-    return this._maxBet
+    return this._balance
   }
 
   /**
@@ -194,9 +195,6 @@ export class BettingSystem {
       return false
     }
     if (amount < this._minBet) {
-      return false
-    }
-    if (amount > this._maxBet) {
       return false
     }
     if (amount > this._balance) {

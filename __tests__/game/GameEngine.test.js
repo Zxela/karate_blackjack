@@ -245,8 +245,8 @@ describe('GameEngine', () => {
       expect(result).toBe(false)
     })
 
-    it('returns false for bet above maximum', () => {
-      const result = engine.placeBet(0, 600)
+    it('returns false for bet above balance', () => {
+      const result = engine.placeBet(0, 1100) // exceeds balance of 1000
 
       expect(result).toBe(false)
     })

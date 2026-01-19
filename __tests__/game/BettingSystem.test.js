@@ -39,14 +39,14 @@ describe('BettingSystem', () => {
       expect(betting.getMinBet()).toBe(10)
     })
 
-    it('creates a system with default max bet of 500', () => {
-      expect(betting.getMaxBet()).toBe(500)
+    it('max bet equals balance', () => {
+      expect(betting.getMaxBet()).toBe(1000) // equals initial balance
     })
 
-    it('creates a system with custom min and max bet', () => {
+    it('creates a system with custom min bet', () => {
       const customBetting = new BettingSystem(1000, 25, 1000)
       expect(customBetting.getMinBet()).toBe(25)
-      expect(customBetting.getMaxBet()).toBe(1000)
+      expect(customBetting.getMaxBet()).toBe(1000) // equals balance
     })
 
     it('starts with no active bets', () => {
@@ -83,13 +83,19 @@ describe('BettingSystem', () => {
   })
 
   describe('getMaxBet', () => {
-    it('returns maximum bet amount', () => {
-      expect(betting.getMaxBet()).toBe(DEFAULTS.MAX_BET)
+    it('returns balance as max bet', () => {
+      expect(betting.getMaxBet()).toBe(1000) // equals initial balance
     })
 
-    it('returns custom maximum bet', () => {
-      const customBetting = new BettingSystem(1000, 10, 2000)
-      expect(customBetting.getMaxBet()).toBe(2000)
+    it('max bet decreases as balance decreases', () => {
+      betting.placeBet(100)
+      expect(betting.getMaxBet()).toBe(900) // balance after bet
+    })
+
+    it('max bet increases as balance increases', () => {
+      betting.placeBet(100)
+      betting.payout(100, 2) // win doubles the bet
+      expect(betting.getMaxBet()).toBe(1100) // 900 + 200 payout
     })
   })
 
@@ -125,8 +131,8 @@ describe('BettingSystem', () => {
       expect(result).toBe(false)
     })
 
-    it('returns false when bet amount exceeds maximum', () => {
-      const result = betting.placeBet(600)
+    it('returns false when bet amount exceeds balance', () => {
+      const result = betting.placeBet(1100) // exceeds balance of 1000
       expect(result).toBe(false)
     })
 
@@ -189,8 +195,8 @@ describe('BettingSystem', () => {
       expect(betting.canBet(5)).toBe(false)
     })
 
-    it('returns false when bet exceeds maximum', () => {
-      expect(betting.canBet(600)).toBe(false)
+    it('returns false when bet exceeds balance', () => {
+      expect(betting.canBet(1100)).toBe(false) // exceeds balance of 1000
     })
 
     it('returns true for bet at minimum limit', () => {
