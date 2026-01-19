@@ -494,11 +494,22 @@ function updateUI() {
 
   // Update dealer
   const dealerCards = state.dealerHand.cards
+  const dealerHandEl = elements.dealerHand()
   // Hide dealer's hole card during player turn AND insurance check
   const hideDealerCard =
     (state.phase === GAME_PHASES.PLAYER_TURN || state.phase === GAME_PHASES.INSURANCE_CHECK) &&
     dealerCards.length > 0
-  renderCards(elements.dealerHand(), dealerCards, hideDealerCard)
+
+  // During dealer turn, only append new cards to avoid flash
+  const existingCardCount = dealerHandEl.querySelectorAll('.card').length
+  if (state.phase === GAME_PHASES.DEALER_TURN && existingCardCount > 0 && dealerCards.length > existingCardCount) {
+    // Just append new cards
+    for (let i = existingCardCount; i < dealerCards.length; i++) {
+      dealerHandEl.appendChild(createCardElement(dealerCards[i], false))
+    }
+  } else {
+    renderCards(dealerHandEl, dealerCards, hideDealerCard)
+  }
 
   if (hideDealerCard && dealerCards.length > 0) {
     // Show only second card value
