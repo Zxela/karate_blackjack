@@ -551,7 +551,10 @@ function updateUI() {
 
       renderCards(elements.playerCards(i), hand.cards)
       // Show soft indicator for player hands (hide during dealing animation)
-      elements.playerValue(i).textContent = isDealingAnimation ? '--' : formatHandValue(hand)
+      const valueEl = elements.playerValue(i)
+      valueEl.textContent = isDealingAnimation ? '--' : formatHandValue(hand)
+      // Add soft class for visual styling when hand has Ace counted as 11
+      valueEl.classList.toggle('soft', !isDealingAnimation && hand.isSoft && hand.value <= 21)
       elements.playerBet(i).textContent = hand.bet > 0 ? `$${hand.bet}` : ''
 
       // Render chip stack for this hand
@@ -561,7 +564,9 @@ function updateUI() {
       handEl.classList.remove('hidden')
       handEl.classList.remove('active')
       renderCards(elements.playerCards(i), [])
-      elements.playerValue(i).textContent = '--'
+      const valueEl = elements.playerValue(i)
+      valueEl.textContent = '--'
+      valueEl.classList.remove('soft')
       elements.playerBet(i).textContent = currentBet > 0 ? `$${currentBet}` : ''
 
       // Show bet chips during betting phase
