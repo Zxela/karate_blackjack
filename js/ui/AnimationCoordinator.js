@@ -245,6 +245,9 @@ export class AnimationCoordinator {
    */
   async animateInitialDeal(playerHands, dealerHand, handCount, updateUI) {
     if (!this._animationsEnabled) {
+      // Still need to update UI even without animations
+      this._handCount = handCount
+      if (updateUI) updateUI()
       return
     }
 
@@ -321,6 +324,7 @@ export class AnimationCoordinator {
    */
   async animateHit(card, handIndex, cardIndex, updateUI) {
     if (!this._animationsEnabled) {
+      if (updateUI) updateUI()
       return
     }
 
@@ -366,6 +370,7 @@ export class AnimationCoordinator {
    */
   async animateDealerHit(card, cardIndex, updateUI) {
     if (!this._animationsEnabled) {
+      if (updateUI) updateUI()
       return
     }
 

@@ -11,7 +11,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure'
+    screenshot: 'only-on-failure',
+    // Ensure animations are enabled for consistent test behavior
+    reducedMotion: 'no-preference'
   },
   projects: [
     {

@@ -523,10 +523,20 @@ describe('GameEngine', () => {
         multiEngine.declineInsurance()
       }
 
-      multiEngine.stand(0)
+      const beforeStand = multiEngine.getState()
 
-      const state = multiEngine.getState()
-      expect(state.currentHandIndex).toBe(1)
+      // If hand 1 already has blackjack (auto-stood), skip this test iteration
+      // as the expected behavior differs
+      if (beforeStand.playerHands[1]?.isBlackjack) {
+        // Hand 1 auto-stood with blackjack, standing on hand 0 will complete all hands
+        multiEngine.stand(0)
+        const state = multiEngine.getState()
+        expect(state.phase).toBe(GAME_PHASES.DEALER_TURN)
+      } else {
+        multiEngine.stand(0)
+        const state = multiEngine.getState()
+        expect(state.currentHandIndex).toBe(1)
+      }
     })
 
     it('transitions to dealerTurn when all hands complete', () => {

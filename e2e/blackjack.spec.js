@@ -1,13 +1,34 @@
 import { expect, test } from '@playwright/test'
 
-// Helper function to wait for deal animation to complete
+/**
+ * Parses a hand value string that may be in "Soft X" or plain "X" format.
+ * @param {string} valueText - The text content of a hand value element
+ * @returns {number} The numeric hand value, or NaN if unparseable
+ */
+function parseHandValue(valueText) {
+  if (!valueText || valueText === '--') return NaN
+  // Handle "Soft X" format
+  const softMatch = valueText.match(/Soft\s+(\d+)/i)
+  if (softMatch) return Number.parseInt(softMatch[1], 10)
+  // Handle plain number
+  return Number.parseInt(valueText, 10)
+}
+
+/**
+ * Waits for the deal animation to complete by waiting for cards to appear.
+ * @param {import('@playwright/test').Page} page
+ */
 async function waitForDealComplete(page) {
-  // Wait for player cards to be dealt
-  await expect(page.locator('#playerCards0 .card')).toHaveCount(2, { timeout: 10000 })
-  // Wait for dealer cards to be dealt
-  await expect(page.locator('#dealerHand .card')).toHaveCount(2, { timeout: 10000 })
-  // Small delay for any post-deal animations
-  await page.waitForTimeout(500)
+  // Wait for player cards to appear
+  await page.waitForSelector('#playerCards0 .card', { timeout: 10000 })
+  // Wait for value to update from "--"
+  await page.waitForFunction(
+    () => {
+      const el = document.getElementById('playerValue0')
+      return el && el.textContent !== '--'
+    },
+    { timeout: 10000 }
+  )
 }
 
 test.describe('Karate Blackjack Game', () => {
@@ -103,10 +124,10 @@ test.describe('Karate Blackjack Game', () => {
     test('shows player hand value after deal', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       const valueText = await page.locator('#playerValue0').textContent()
-      const value = Number.parseInt(valueText)
+      const value = parseHandValue(valueText)
       expect(value).toBeGreaterThanOrEqual(4)
       expect(value).toBeLessThanOrEqual(21)
     })
@@ -114,7 +135,7 @@ test.describe('Karate Blackjack Game', () => {
     test('dealer shows partial value during player turn', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       // Dealer value should show only face-up card value
       const dealerValue = await page.locator('#dealerValue').textContent()
@@ -126,7 +147,7 @@ test.describe('Karate Blackjack Game', () => {
     test('can hit and receive card when action controls visible', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       // Only proceed if action controls are visible (not blackjack/insurance)
       const actionVisible = await page.locator('#actionControls').isVisible()
@@ -137,7 +158,12 @@ test.describe('Karate Blackjack Game', () => {
 
       const initialCards = await page.locator('#playerCards0 .card').count()
       await page.click('#hitButton')
-      await page.waitForTimeout(500)
+      // Wait for new card to appear
+      await page.waitForFunction(
+        (expected) => document.querySelectorAll('#playerCards0 .card').length === expected,
+        initialCards + 1,
+        { timeout: 5000 }
+      )
 
       const newCards = await page.locator('#playerCards0 .card').count()
       expect(newCards).toBe(initialCards + 1)
@@ -146,7 +172,7 @@ test.describe('Karate Blackjack Game', () => {
     test('can stand and move to dealer turn', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       // Only proceed if action controls are visible
       const actionVisible = await page.locator('#actionControls').isVisible()
@@ -159,9 +185,9 @@ test.describe('Karate Blackjack Game', () => {
       }
 
       await page.click('#standButton')
-      await page.waitForTimeout(3000)
+      // Wait for new round controls to appear (dealer finishes, results shown)
+      await page.waitForSelector('#newRoundControls:not(.hidden)', { timeout: 15000 })
 
-      // Should transition to resolution
       await expect(page.locator('#newRoundControls')).toBeVisible()
     })
   })
@@ -170,17 +196,17 @@ test.describe('Karate Blackjack Game', () => {
     test('shows new round button after game ends', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       // Handle different game states
       if (await page.locator('#insuranceControls').isVisible()) {
         await page.click('#insuranceNoButton')
-        await page.waitForTimeout(1000)
+        await waitForDealComplete(page).catch(() => {})
       }
 
       if (await page.locator('#actionControls').isVisible()) {
         await page.click('#standButton')
-        await page.waitForTimeout(3000)
+        await page.waitForSelector('#newRoundControls:not(.hidden)', { timeout: 15000 })
       }
 
       await expect(page.locator('#newRoundControls')).toBeVisible()
@@ -190,21 +216,22 @@ test.describe('Karate Blackjack Game', () => {
     test('can start new round after game ends', async ({ page }) => {
       await page.click('[data-bet="10"]')
       await page.click('#dealButton')
-      await page.waitForTimeout(3000)
+      await waitForDealComplete(page)
 
       // Handle different game states
       if (await page.locator('#insuranceControls').isVisible()) {
         await page.click('#insuranceNoButton')
-        await page.waitForTimeout(1000)
+        await waitForDealComplete(page).catch(() => {})
       }
 
       if (await page.locator('#actionControls').isVisible()) {
         await page.click('#standButton')
-        await page.waitForTimeout(3000)
+        await page.waitForSelector('#newRoundControls:not(.hidden)', { timeout: 15000 })
       }
 
       await page.click('#newRoundButton')
-      await page.waitForTimeout(500)
+      // Wait for betting controls to appear
+      await page.waitForSelector('#bettingControls:not(.hidden)', { timeout: 5000 })
 
       await expect(page.locator('#bettingControls')).toBeVisible()
       await expect(page.locator('#currentBetAmount')).toContainText('$0')

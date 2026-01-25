@@ -240,8 +240,8 @@ describe('AnimationCoordinator', () => {
 
       await coordinator.animateInitialDeal(playerHands, dealerHand, 1, updateUI)
 
-      // Should not call updateUI when animations disabled
-      expect(updateUI).not.toHaveBeenCalled()
+      // Should still call updateUI once when animations disabled to update DOM
+      expect(updateUI).toHaveBeenCalledTimes(1)
     })
 
     it('handles multiple hands', async () => {
@@ -282,7 +282,8 @@ describe('AnimationCoordinator', () => {
 
       await coordinator.animateHit(card, 0, 2, updateUI)
 
-      expect(updateUI).not.toHaveBeenCalled()
+      // Should still call updateUI once when animations disabled to update DOM
+      expect(updateUI).toHaveBeenCalledTimes(1)
     })
   })
 
@@ -311,7 +312,8 @@ describe('AnimationCoordinator', () => {
 
       await coordinator.animateDealerHit(card, 2, updateUI)
 
-      expect(updateUI).not.toHaveBeenCalled()
+      // Should still call updateUI once when animations disabled to update DOM
+      expect(updateUI).toHaveBeenCalledTimes(1)
     })
   })
 
