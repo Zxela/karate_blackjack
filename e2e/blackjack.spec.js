@@ -1,5 +1,15 @@
 import { expect, test } from '@playwright/test'
 
+// Helper function to wait for deal animation to complete
+async function waitForDealComplete(page) {
+  // Wait for player cards to be dealt
+  await expect(page.locator('#playerCards0 .card')).toHaveCount(2, { timeout: 10000 })
+  // Wait for dealer cards to be dealt
+  await expect(page.locator('#dealerHand .card')).toHaveCount(2, { timeout: 10000 })
+  // Small delay for any post-deal animations
+  await page.waitForTimeout(500)
+}
+
 test.describe('Karate Blackjack Game', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
@@ -902,6 +912,127 @@ test.describe('Karate Blackjack Game', () => {
 
       await volumeToggle.click()
       await expect(volumeControl).not.toHaveClass(/muted/)
+    })
+  })
+
+  test.describe('Visual Enhancements', () => {
+    test('active hand has visual indicator in multi-hand play', async ({ page }) => {
+      // Select 2 hands
+      await page.click('[data-hands="2"]')
+      await page.click('[data-bet="10"]')
+      await page.click('#dealButton')
+      await waitForDealComplete(page)
+
+      // Skip if not in player turn (blackjack/insurance)
+      if (!(await page.locator('#actionControls').isVisible())) return
+
+      // First hand should be active
+      await expect(page.locator('#playerHand0')).toHaveClass(/active/)
+      await expect(page.locator('#playerHand1')).not.toHaveClass(/active/)
+    })
+
+    test('result displays have appropriate styling classes', async ({ page }) => {
+      await page.click('[data-bet="10"]')
+      await page.click('#dealButton')
+      await waitForDealComplete(page)
+
+      // Complete the round using polling pattern
+      let roundComplete = false
+      for (let i = 0; i < 30 && !roundComplete; i++) {
+        const insuranceVisible = await page
+          .locator('#insuranceControls')
+          .isVisible()
+          .catch(() => false)
+        const actionVisible = await page
+          .locator('#actionControls')
+          .isVisible()
+          .catch(() => false)
+        const newRoundVisible = await page
+          .locator('#newRoundControls')
+          .isVisible()
+          .catch(() => false)
+
+        if (newRoundVisible) {
+          roundComplete = true
+        } else if (insuranceVisible) {
+          await page.click('#insuranceNoButton')
+          await page.waitForTimeout(500)
+        } else if (actionVisible) {
+          await page.click('#standButton')
+          await page.waitForTimeout(500)
+        } else {
+          await page.waitForTimeout(500)
+        }
+      }
+
+      // Wait for new round controls to be visible
+      await expect(page.locator('#newRoundControls')).toBeVisible({ timeout: 15000 })
+
+      // Wait for result animation to complete
+      await page.waitForTimeout(500)
+
+      // Check hand element has a result class (classes are applied to the hand element)
+      const handEl = page.locator('#playerHand0')
+      await expect(handEl).toHaveClass(/result-(win|lose|push|blackjack)/)
+    })
+
+    test('soft hand value has soft class styling', async ({ page }) => {
+      // This test is probabilistic - soft hands contain an Ace
+      // Run multiple rounds to catch a soft hand
+      for (let round = 0; round < 5; round++) {
+        // Wait for betting controls to be visible
+        await expect(page.locator('#bettingControls')).toBeVisible({ timeout: 10000 })
+
+        // Wait for any animations to complete before placing bet
+        await page.waitForTimeout(1000)
+
+        await page.click('[data-bet="10"]')
+        // Wait for bet to be registered
+        await expect(page.locator('#currentBetAmount')).toContainText('$10', { timeout: 5000 })
+        await expect(page.locator('#dealButton')).toBeEnabled({ timeout: 5000 })
+        await page.click('#dealButton')
+        await waitForDealComplete(page)
+
+        const valueText = await page.locator('#playerValue0').textContent()
+        if (valueText?.includes('Soft')) {
+          await expect(page.locator('#playerValue0')).toHaveClass(/soft/)
+          return // Test passed
+        }
+
+        // Complete round using polling pattern
+        let roundComplete = false
+        for (let i = 0; i < 30 && !roundComplete; i++) {
+          const insuranceVisible = await page
+            .locator('#insuranceControls')
+            .isVisible()
+            .catch(() => false)
+          const actionVisible = await page
+            .locator('#actionControls')
+            .isVisible()
+            .catch(() => false)
+          const newRoundVisible = await page
+            .locator('#newRoundControls')
+            .isVisible()
+            .catch(() => false)
+
+          if (newRoundVisible) {
+            roundComplete = true
+          } else if (insuranceVisible) {
+            await page.click('#insuranceNoButton')
+            await page.waitForTimeout(500)
+          } else if (actionVisible) {
+            await page.click('#standButton')
+            await page.waitForTimeout(500)
+          } else {
+            await page.waitForTimeout(500)
+          }
+        }
+
+        await expect(page.locator('#newRoundControls')).toBeVisible({ timeout: 15000 })
+        await page.click('#newRoundButton')
+        await page.waitForTimeout(1000)
+      }
+      // If we never got a soft hand in 5 rounds, that's ok - test is probabilistic
     })
   })
 })

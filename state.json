@@ -1,0 +1,23 @@
+{
+  "session_id": "ui-ux-improvements-e1579db4",
+  "branch": "create/ui-ux-improvements-e1579db4",
+  "worktree": "../blackjack-create-ui-ux-improvements-e1579db4",
+  "feature": "ui-ux-improvements",
+  "created_at": "2026-01-25T14:30:00Z",
+  "phase": "implementing",
+  "tasks": {
+    "001": { "status": "pending", "file": "docs/tasks/001-css-active-hand.md" },
+    "002": { "status": "pending", "file": "docs/tasks/002-css-result-classes.md" },
+    "003": { "status": "pending", "file": "docs/tasks/003-css-soft-hand.md" },
+    "004": { "status": "pending", "file": "docs/tasks/004-js-apply-classes.md" },
+    "005": { "status": "pending", "file": "docs/tasks/005-e2e-visual-tests.md" }
+  },
+  "current_task": null,
+  "config": {
+    "auto_mode": true,
+    "retries": {
+      "same_agent": 2,
+      "fresh_agent": 1
+    }
+  }
+}
